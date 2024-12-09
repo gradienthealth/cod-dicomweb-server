@@ -1,7 +1,7 @@
 {
   "name": "cod-dicomweb-server",
   "title": "COD Dicomweb server",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "private": false,
   "description": "A wadors server proxy that get data from a COD format.",
   "license": "MIT",
