@@ -1,13 +1,13 @@
 {
   "name": "cod-dicomweb-server",
   "title": "COD Dicomweb server",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": false,
   "description": "A wadors server proxy that get data from a COD format.",
   "license": "MIT",
-  "author": "Adithyan DInesh",
+  "author": "Adithyan Dinesh",
   "type": "module",
-  "main": "./dist/index.ts",
+  "main": "./dist/main.min.js",
   "keywords": [
     "cod-dicomweb-server",
     "server",

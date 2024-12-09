@@ -1,7 +1,6 @@
 // Import Configuration.
 import {
   htmlWebpackPlugin,
-  copyWebpackPlugin,
   eSLintWebpackPlugin,
   dotenvWebpackPlugin,
 } from './plugins/index.js';
@@ -27,7 +26,6 @@ const output = {
  */
 const plugins = [
   htmlWebpackPlugin,
-  copyWebpackPlugin,
   eSLintWebpackPlugin,
   dotenvWebpackPlugin,
 ];

@@ -6,7 +6,7 @@
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "jsx": "react-jsx",
-    "lib": ["ES2016", "DOM", "DOM.Iterable"],
+    "lib": ["ES2016"],
     "module": "ESNext",
     "moduleResolution": "node",
     "noImplicitAny": true,
@@ -18,7 +18,7 @@
     "sourceMap": true,
     "strict": true,
     "target": "ES2016",
-    "typeRoots": ["node_modules/@types", "src/@types"],
+    "typeRoots": ["node_modules/@types", "src/types"],
     "verbatimModuleSyntax": true
   },
   "exclude": ["node_modules", "configuration", "public", "webpack", "coverage"]
