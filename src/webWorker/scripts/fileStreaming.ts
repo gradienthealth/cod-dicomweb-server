@@ -1,5 +1,3 @@
-import { expose } from 'comlink';
-
 const fileStreaming = {
   maxFetchSize: 0,
   fetchedSize: 0,
@@ -16,11 +14,7 @@ const fileStreaming = {
     }
   },
 
-  async stream(args: {
-    url: string;
-    headers?: Record<string, string>;
-    useSharedArrayBuffer?: boolean;
-  }): Promise<void> {
+  async stream(args: { url: string; headers?: Record<string, string>; useSharedArrayBuffer?: boolean }): Promise<void> {
     const { url, headers, useSharedArrayBuffer } = args;
     const controller = new AbortController();
     let sharedArraybuffer: SharedArrayBuffer | null = null;
@@ -29,7 +23,7 @@ const fileStreaming = {
     try {
       const response = await fetch(url, {
         headers: { ...headers },
-        signal: controller.signal,
+        signal: controller.signal
       });
 
       if (!response.ok) {
@@ -43,10 +37,7 @@ const fileStreaming = {
 
       let result: ReadableStreamReadResult<Uint8Array>;
       let completed = false;
-      const totalLength = parseInt(
-        response.headers.get('Content-Length') || '0',
-        10,
-      );
+      const totalLength = parseInt(response.headers.get('Content-Length') || '0', 10);
       const firstChunk = await reader.read();
       completed = firstChunk.done;
 
@@ -57,14 +48,9 @@ const fileStreaming = {
       if (!completed) {
         let position = firstChunk.value.length;
 
-        if (
-          this.maxFetchSize &&
-          this.fetchedSize + position > this.maxFetchSize
-        ) {
+        if (this.maxFetchSize && this.fetchedSize + position > this.maxFetchSize) {
           controller.abort();
-          throw new Error(
-            `Maximum size(${this.maxFetchSize}) for fetching files reached`,
-          );
+          throw new Error(`Maximum size(${this.maxFetchSize}) for fetching files reached`);
         }
 
         this.fetchedSize += position;
@@ -88,16 +74,11 @@ const fileStreaming = {
 
           const chunk = result.value;
 
-          if (
-            this.maxFetchSize &&
-            this.fetchedSize + chunk.length > this.maxFetchSize
-          ) {
+          if (this.maxFetchSize && this.fetchedSize + chunk.length > this.maxFetchSize) {
             sharedArraybuffer = null;
             fileArraybuffer = null;
             controller.abort();
-            throw new Error(
-              `Maximum size(${this.maxFetchSize}) for fetching files reached`,
-            );
+            throw new Error(`Maximum size(${this.maxFetchSize}) for fetching files reached`);
           }
 
           this.fetchedSize += chunk.length;
@@ -108,15 +89,12 @@ const fileStreaming = {
             isAppending: true,
             url,
             position: position,
-            chunk: !useSharedArrayBuffer ? chunk : null,
+            chunk: !useSharedArrayBuffer ? chunk : null
           });
         }
       }
     } catch (error) {
-      const streamingError = new Error(
-        'fileStreaming.ts: ' + (error as Error).message ||
-          'An error occured when streaming',
-      );
+      const streamingError = new Error('fileStreaming.ts: ' + (error as Error).message || 'An error occured when streaming');
       console.error(streamingError.message, error);
       throw streamingError;
     } finally {
@@ -124,7 +102,7 @@ const fileStreaming = {
       fileArraybuffer = null;
       controller.abort();
     }
-  },
+  }
 };
 
-expose(fileStreaming);
+export default fileStreaming;
