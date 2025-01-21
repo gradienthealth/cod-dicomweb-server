@@ -1,5 +1,5 @@
 const fileStreaming = {
-  maxFetchSize: 0,
+  maxFetchSize: 4 * 1024 * 1024 * 1024, // 4GB
   fetchedSize: 0,
 
   setMaxFetchSize(size: number): void {
@@ -48,7 +48,7 @@ const fileStreaming = {
       if (!completed) {
         let position = firstChunk.value.length;
 
-        if (this.maxFetchSize && this.fetchedSize + position > this.maxFetchSize) {
+        if (this.fetchedSize + position > this.maxFetchSize) {
           controller.abort();
           throw new Error(`Maximum size(${this.maxFetchSize}) for fetching files reached`);
         }
@@ -74,7 +74,7 @@ const fileStreaming = {
 
           const chunk = result.value;
 
-          if (this.maxFetchSize && this.fetchedSize + chunk.length > this.maxFetchSize) {
+          if (this.fetchedSize + chunk.length > this.maxFetchSize) {
             sharedArraybuffer = null;
             fileArraybuffer = null;
             controller.abort();

@@ -1,32 +1,40 @@
 import { createMetadataJsonUrl } from './classes/utils';
 import type { JsonMetadata, MetadataUrlCreationParams } from './types';
 
-const metadata: Record<string, JsonMetadata> = {};
+class MetadataManager {
+  private metadata: Record<string, JsonMetadata> = {};
 
-export async function getMetadata(
-  params: MetadataUrlCreationParams,
-  headers: Record<string, string>,
-): Promise<JsonMetadata | null> {
-  const url = createMetadataJsonUrl(params);
+  constructor() {}
 
-  if (!url) {
-    throw new Error('Error creating metadata json url');
+  public getMetadataFromCache(url: string) {
+    return this.metadata[url];
   }
 
-  if (metadata[url]) {
-    return metadata[url];
-  }
+  public async getMetadata(params: MetadataUrlCreationParams, headers: Record<string, string>): Promise<JsonMetadata | null> {
+    const url = createMetadataJsonUrl(params);
 
-  try {
-    const response = await fetch(url, { headers });
-    if (!response.ok) {
-      throw new Error(`Failed to fetch metadata: ${response.statusText}`);
+    if (!url) {
+      throw new Error('Error creating metadata json url');
     }
-    const data = await response.json();
-    metadata[url] = data;
-    return data;
-  } catch (error) {
-    console.error(error);
-    throw error;
+
+    const cachedMetadata = this.getMetadataFromCache(url);
+    if (cachedMetadata) {
+      return cachedMetadata;
+    }
+
+    try {
+      const response = await fetch(url, { headers });
+      if (!response.ok) {
+        throw new Error(`Failed to fetch metadata: ${response.statusText}`);
+      }
+      const data = await response.json();
+      this.metadata[url] = data;
+      return data;
+    } catch (error) {
+      console.error(error);
+      throw error;
+    }
   }
 }
+
+export default MetadataManager;

@@ -13,20 +13,12 @@ class FileManager {
     this.files[url] = file;
   }
 
-  get(
-    url: string,
-    offsets?: { startByte: number; endByte: number },
-  ): Uint8Array | null {
-    if (
-      !this.files[url] ||
-      (offsets && this.files[url].position <= offsets.endByte)
-    ) {
+  get(url: string, offsets?: { startByte: number; endByte: number }): Uint8Array | null {
+    if (!this.files[url] || (offsets && this.files[url].position <= offsets.endByte)) {
       return null;
     }
 
-    return offsets
-      ? this.files[url].data.slice(offsets.startByte, offsets.endByte)
-      : this.files[url].data;
+    return offsets ? this.files[url].data.slice(offsets.startByte, offsets.endByte) : this.files[url].data;
   }
 
   setPosition(url: string, position: number): void {
@@ -61,11 +53,7 @@ class FileManager {
     }
 
     const workerManager = getWebWorkerManager();
-    workerManager.executeTask(
-      this.fileStreamingWorkerName,
-      'decreaseFetchedSize',
-      removedSize,
-    );
+    workerManager.executeTask(this.fileStreamingWorkerName, 'decreaseFetchedSize', removedSize);
   }
 
   purge(): void {
@@ -73,11 +61,7 @@ class FileManager {
     this.files = {};
 
     const workerManager = getWebWorkerManager();
-    workerManager.executeTask(
-      this.fileStreamingWorkerName,
-      'decreaseFetchedSize',
-      totalSize,
-    );
+    workerManager.executeTask(this.fileStreamingWorkerName, 'decreaseFetchedSize', totalSize);
   }
 }
 

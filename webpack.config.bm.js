@@ -3,6 +3,7 @@ const webpack = require('webpack');
 const TerserPlugin = require('terser-webpack-plugin');
 const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 const getPackageJson = require('./scripts/getPackageJson');
+const HtmlWebpackPlugin = require('html-webpack-plugin');
 
 const { version, name, license, repository, author } = getPackageJson('version', 'name', 'license', 'repository', 'author');
 
@@ -19,16 +20,24 @@ ${repository.url}
 module.exports = {
   mode: 'production',
   devtool: 'source-map',
-  entry: './src/index.ts',
+  entry: { main: './src/index.ts', benchmark: './benchmarks/index.js' },
   output: {
     filename: '[name].js',
-    path: path.resolve(__dirname, 'dist'),
+    path: path.resolve(__dirname, 'dist', 'serve'),
     libraryTarget: 'umd',
     clean: true
   },
   optimization: {
     minimize: true,
     minimizer: [new TerserPlugin({ extractComments: false })]
+  },
+  devServer: {
+    static: {
+      directory: path.join(__dirname, 'benchmarks')
+    },
+    port: 8080,
+    // open: true,
+    hot: true
   },
   module: {
     rules: [
@@ -43,9 +52,19 @@ module.exports = {
   },
   plugins: [
     new CleanWebpackPlugin({
-      root: path.resolve(__dirname, 'dist')
+      root: path.resolve(__dirname, 'dist', 'serve')
     }),
-    new webpack.BannerPlugin(banner)
+    new webpack.BannerPlugin(banner),
+    new HtmlWebpackPlugin({
+      filename: 'index.html',
+      template: './benchmarks/index.html',
+      cache: true,
+      minify: {
+        collapseWhitespace: true,
+        removeComments: true
+      }
+    }),
+    new webpack.HotModuleReplacementPlugin()
   ],
   resolve: {
     extensions: ['.ts', '.js', '.json']

@@ -1,10 +1,10 @@
 import { parseDicom } from 'dicom-parser';
 
 import FileManager from '../fileManager';
-import { getMetadata } from '../metadataManager';
+import MetadataManager from '../metadataManager';
 import { getFrameDetailsFromMetadata, parseWadorsURL } from './utils';
 import { getWebWorkerManager } from '../webWorker/workerManager';
-import { registerWorkers } from '../webWorker/registerWorker';
+import { registerWorkers } from '../webWorker/registerWorkers';
 import constants, { Enums } from '../constants';
 import type {
   CodDicomWebServerOptions,
@@ -23,6 +23,7 @@ class CodDicomWebServer {
     domain: constants.url.DOMAIN
   };
   private fileManager;
+  private metadataManager;
   private seriesUidFileUrls: Record<string, string[]> = {};
 
   constructor(args: { maxWorkerFetchSize?: number; domain?: string } = {}) {
@@ -33,13 +34,14 @@ class CodDicomWebServer {
     const fileStreamingWorkerName = constants.worker.FILE_STREAMING_WORKER_NAME;
     const filePartialWorkerName = constants.worker.FILE_PARTIAL_WORKER_NAME;
     this.fileManager = new FileManager({ fileStreamingWorkerName });
+    this.metadataManager = new MetadataManager();
 
     registerWorkers({ fileStreamingWorkerName, filePartialWorkerName }, this.options.maxWorkerFetchSize);
   }
 
-  public setOptions = (newOptions: CodDicomWebServerOptions): void => {
+  public setOptions = (newOptions: Partial<CodDicomWebServerOptions>): void => {
     Object.keys(newOptions).forEach((key) => {
-      if (!newOptions[key] === undefined) {
+      if (newOptions[key] !== undefined) {
         this.options[key] = newOptions[key];
       }
     });
@@ -49,7 +51,7 @@ class CodDicomWebServer {
     return this.options;
   };
 
-  private addFileUrl(seriesInstanceUID: string, url: string): void {
+  public addFileUrl(seriesInstanceUID: string, url: string): void {
     if (this.seriesUidFileUrls[seriesInstanceUID]) {
       this.seriesUidFileUrls[seriesInstanceUID].push(url);
     } else {
@@ -64,12 +66,17 @@ class CodDicomWebServer {
     { useSharedArrayBuffer = false, fetchType = constants.Enums.FetchType.API_OPTIMIZED }: CODRequestOptions = {}
   ): Promise<ArrayBufferLike | InstanceMetadata | SeriesMetadata | undefined> {
     try {
+      if (!wadorsUrl) {
+        throw new Error('Url not provided');
+      }
+
       const parsedDetails = parseWadorsURL(wadorsUrl, this.options.domain);
 
       if (parsedDetails) {
-        const { type, bucketName, bucketPrefix, studyInstanceUID, seriesInstanceUID, sopInstanceUID, frameNumber } = parsedDetails;
+        const { type, bucketName, bucketPrefix, studyInstanceUID, seriesInstanceUID, sopInstanceUID, frameNumber } =
+          parsedDetails;
 
-        const metadataJson = await getMetadata(
+        const metadataJson = await this.metadataManager.getMetadata(
           {
             domain: this.options.domain,
             bucketName,
@@ -98,6 +105,10 @@ class CodDicomWebServer {
 
         switch (type) {
           case Enums.RequestType.THUMBNAIL:
+            if (!thumbnailUrl) {
+              throw new Error(`Thumbnail not found for ${wadorsUrl}`);
+            }
+
             this.addFileUrl(seriesInstanceUID, thumbnailUrl);
 
             return this.fetchFile(thumbnailUrl, headers, {
@@ -105,6 +116,10 @@ class CodDicomWebServer {
             });
 
           case Enums.RequestType.FRAME: {
+            if (!fileUrl) {
+              throw new Error('Url not found for frame');
+            }
+
             let urlWithBytes: string = fileUrl;
             if (fetchType === Enums.FetchType.BYTES_OPTIMIZED) {
               urlWithBytes = `${fileUrl}?bytes=${startByte}-${endByte}`;
@@ -155,9 +170,11 @@ class CodDicomWebServer {
                   const dataSet = parseDicom(new Uint8Array(result));
                   const seriesInstanceUID = dataSet.string('0020000e');
 
-                  !!seriesInstanceUID && this.addFileUrl(seriesInstanceUID, wadorsUrl);
+                  if (seriesInstanceUID) {
+                    this.addFileUrl(seriesInstanceUID, wadorsUrl);
+                  }
                 } catch (error) {
-                  console.warn('There is some issue parsing the file.', error);
+                  console.warn('CodDicomWebServer.ts: There is some issue parsing the file.', error);
                 }
               }
               resolve(result);
@@ -166,8 +183,9 @@ class CodDicomWebServer {
         });
       }
     } catch (error) {
-      console.error(error);
-      throw error;
+      const newError = new Error(`CodDicomWebServer.ts: ${error.message || 'An error occured when fetching the COD'}`);
+      console.error(newError);
+      throw newError;
     }
   }
 
@@ -197,7 +215,7 @@ class CodDicomWebServer {
     if (!this.filePromises[fileUrl]) {
       tarPromise = new Promise<void>((resolveFile, rejectFile) => {
         if (this.fileManager.getTotalSize() + THRESHOLD > maxWorkerFetchSize) {
-          throw new Error(`fileStreaming.ts: Maximum size(${maxWorkerFetchSize}) for fetching files reached`);
+          throw new Error(`CodDicomWebServer.ts: Maximum size(${maxWorkerFetchSize}) for fetching files reached`);
         }
 
         const FetchTypeEnum = constants.Enums.FetchType;
@@ -260,7 +278,7 @@ class CodDicomWebServer {
             })
             .then(() => delete this.filePromises[fileUrl]);
         } else {
-          rejectFile('Offsets is needed in bytes optimized fetching');
+          rejectFile(new Error('CodDicomWebServer.ts: Offsets is needed in bytes optimized fetching'));
         }
       });
 
@@ -339,9 +357,15 @@ class CodDicomWebServer {
     this.seriesUidFileUrls = {};
   }
 
-  public parseMetadata(metadata: JsonMetadata, type: Enums.RequestType, sopInstanceUID: string): InstanceMetadata | SeriesMetadata {
+  public parseMetadata(
+    metadata: JsonMetadata,
+    type: Enums.RequestType,
+    sopInstanceUID: string
+  ): InstanceMetadata | SeriesMetadata {
     if (type === Enums.RequestType.INSTANCE_METADATA) {
-      return metadata.cod.instances[sopInstanceUID].metadata;
+      return Object.values(metadata.cod.instances).find(
+        (instance) => instance.metadata['00080018']?.Value?.[0] === sopInstanceUID
+      )?.metadata;
     } else {
       return Object.values(metadata.cod.instances).map((instance) => instance.metadata);
     }

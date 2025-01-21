@@ -1,14 +1,7 @@
 import constants, { Enums } from '../constants';
-import type {
-  JsonMetadata,
-  MetadataUrlCreationParams,
-  ParsedWadoRsUrlDetails,
-} from '../types';
+import type { JsonMetadata, MetadataUrlCreationParams, ParsedWadoRsUrlDetails } from '../types';
 
-export function parseWadorsURL(
-  url: string,
-  domain: string,
-): ParsedWadoRsUrlDetails | undefined {
+export function parseWadorsURL(url: string, domain: string): ParsedWadoRsUrlDetails | undefined {
   if (!url.includes(constants.url.URL_VALIDATION_STRING)) {
     return;
   }
@@ -44,7 +37,7 @@ export function parseWadorsURL(
       break;
     case imageParts.includes('frames'):
       sopInstanceUID = imageParts[5];
-      frameNumber = +(imageParts[7] || frameNumber);
+      frameNumber = +imageParts[7];
       type = Enums.RequestType.FRAME;
       break;
     default:
@@ -58,7 +51,7 @@ export function parseWadorsURL(
     studyInstanceUID,
     seriesInstanceUID,
     sopInstanceUID,
-    frameNumber,
+    frameNumber
   };
 }
 
@@ -66,45 +59,42 @@ export function getFrameDetailsFromMetadata(
   seriesMetadata: JsonMetadata,
   sopInstanceUID: string,
   frameIndex: number,
-  bucketDetails: { domain: string; bucketName: string; bucketPrefix: string },
+  bucketDetails: { domain: string; bucketName: string; bucketPrefix: string }
 ): {
-  url: string;
-  startByte: number;
-  endByte: number;
-  thumbnailUrl: string;
-  isMultiframe: boolean;
+  url?: string;
+  startByte?: number;
+  endByte?: number;
+  thumbnailUrl: string | undefined;
+  isMultiframe?: boolean;
 } {
-  if (
-    !seriesMetadata ||
-    !seriesMetadata.cod?.instances ||
-    !seriesMetadata.thumbnail
-  ) {
+  if (!seriesMetadata || !seriesMetadata.cod?.instances) {
     throw new Error('Invalid seriesMetadata provided.');
-  }
-
-  if (!sopInstanceUID) {
-    throw new Error('SOP Instance UID is required.');
   }
 
   if (frameIndex === null || frameIndex === undefined) {
     throw new Error('Frame index is required.');
   }
 
+  const { domain, bucketName, bucketPrefix } = bucketDetails;
+  let thumbnailUrl;
+
+  if (seriesMetadata.thumbnail) {
+    const thumbnailGsUtilUri = seriesMetadata.thumbnail.uri;
+    thumbnailUrl = `${domain}/${thumbnailGsUtilUri.split('gs://')[1]}`;
+  }
+
   const instanceFound = Object.values(seriesMetadata.cod.instances).find(
-    (instance) => instance.metadata['00080018']?.Value?.[0] === sopInstanceUID,
+    (instance) => instance.metadata['00080018']?.Value?.[0] === sopInstanceUID
   );
 
   if (!instanceFound) {
-    throw new Error(
-      `Instance with SOPInstanceUID ${sopInstanceUID} not found.`,
-    );
+    return { thumbnailUrl };
   }
 
-  const { domain, bucketName, bucketPrefix } = bucketDetails;
   const { url, uri, headers: offsetHeaders, offset_tables } = instanceFound;
   const modifiedUrl = handleUrl(url || uri, domain, bucketName, bucketPrefix);
 
-  const { CustomOffsetTable, CustomOffsetTableLengths } = offset_tables || {};
+  const { CustomOffsetTable, CustomOffsetTableLengths } = offset_tables;
 
   let sliceStart: number | undefined,
     sliceEnd: number | undefined,
@@ -117,34 +107,22 @@ export function getFrameDetailsFromMetadata(
 
   const { start_byte: fileStartByte, end_byte: fileEndByte } = offsetHeaders;
 
-  const startByte =
-    sliceStart !== undefined ? fileStartByte + sliceStart : fileStartByte;
-  const endByte =
-    sliceEnd !== undefined ? fileStartByte + sliceEnd : fileEndByte;
-
-  const thumbnailGsUtilUri = seriesMetadata.thumbnail.uri;
-  const thumbnailUrl = `${domain}/${thumbnailGsUtilUri.split('gs://')[1]}`;
+  const startByte = sliceStart !== undefined ? fileStartByte + sliceStart : fileStartByte;
+  const endByte = sliceEnd !== undefined ? fileStartByte + sliceEnd : fileEndByte;
 
   return {
     url: modifiedUrl,
     startByte,
     endByte,
     thumbnailUrl,
-    isMultiframe,
+    isMultiframe
   };
 }
 
-export function handleUrl(
-  url: string,
-  domain: string,
-  bucketName: string,
-  bucketPrefix: string,
-): string {
+export function handleUrl(url: string, domain: string, bucketName: string, bucketPrefix: string): string {
   let modifiedUrl = url;
 
-  const matchingExtension = constants.url.FILE_EXTENSIONS.find((extension) =>
-    url.includes(extension),
-  );
+  const matchingExtension = constants.url.FILE_EXTENSIONS.find((extension) => url.includes(extension));
 
   if (matchingExtension) {
     const fileParts = url.split(matchingExtension);
@@ -157,16 +135,8 @@ export function handleUrl(
   return modifiedUrl;
 }
 
-export function createMetadataJsonUrl(
-  params: MetadataUrlCreationParams,
-): string | undefined {
-  const {
-    domain = constants.url.DOMAIN,
-    bucketName,
-    bucketPrefix,
-    studyInstanceUID,
-    seriesInstanceUID,
-  } = params;
+export function createMetadataJsonUrl(params: MetadataUrlCreationParams): string | undefined {
+  const { domain = constants.url.DOMAIN, bucketName, bucketPrefix, studyInstanceUID, seriesInstanceUID } = params;
 
   if (!bucketName || !bucketPrefix || !studyInstanceUID || !seriesInstanceUID) {
     return;

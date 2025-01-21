@@ -47,10 +47,7 @@ type JsonMetadata = {
   };
 };
 
-type InstanceMetadata = Record<
-  string,
-  { vr: string; Value?: unknown[]; BulkDataURI?: string; InlineBinary?: string }
->;
+type InstanceMetadata = Record<string, { vr: string; Value?: unknown[]; BulkDataURI?: string; InlineBinary?: string }>;
 
 type SeriesMetadata = InstanceMetadata[];
 
