@@ -10,7 +10,7 @@ export async function runBenchmark() {
   let server;
 
   const createFetchCodUrl = (domain, bucketName, bucketPrefix, studyUid, seriesUid, sopUid, frameNumber) => {
-    return `dicomtar:${domain}/${bucketName}/${
+    return `${domain}/${bucketName}/${
       bucketPrefix ? bucketPrefix + '/' : ''
     }studies/${studyUid}/series/${seriesUid}/instances/${sopUid}/frames/${frameNumber}`;
   };
@@ -23,7 +23,6 @@ export async function runBenchmark() {
         const { domain, bucketName, bucketPrefix, studyUid, seriesUid, sopUid } = testCases['CT-MultiInstance'];
         await server.fetchCod(
           createFetchCodUrl(domain, bucketName, bucketPrefix, studyUid, seriesUid, sopUid[0], 1),
-          'imageId',
           { ...(header ? { Authorization: header } : {}) },
           { useSharedArrayBuffer: false, fetchType: FetchType.API_OPTIMIZED }
         );
@@ -41,7 +40,6 @@ export async function runBenchmark() {
           promises.push(
             server.fetchCod(
               createFetchCodUrl(domain, bucketName, bucketPrefix, studyUid, seriesUid, sopUid[frameIndex], 1),
-              'imageId',
               { ...(header ? { Authorization: header } : {}) },
               { useSharedArrayBuffer: false, fetchType: FetchType.API_OPTIMIZED }
             )
@@ -58,7 +56,6 @@ export async function runBenchmark() {
         const { domain, bucketName, bucketPrefix, studyUid, seriesUid, sopUid } = testCases['MR-Multiframe'];
         await server.fetchCod(
           createFetchCodUrl(domain, bucketName, bucketPrefix, studyUid, seriesUid, sopUid, 1),
-          'imageId',
           { ...(header ? { Authorization: header } : {}) },
           { useSharedArrayBuffer: false, fetchType: FetchType.API_OPTIMIZED }
         );
@@ -76,7 +73,6 @@ export async function runBenchmark() {
           promises.push(
             server.fetchCod(
               createFetchCodUrl(domain, bucketName, bucketPrefix, studyUid, seriesUid, sopUid, frameNumber),
-              'imageId',
               { ...(header ? { Authorization: header } : {}) },
               { useSharedArrayBuffer: false, fetchType: FetchType.API_OPTIMIZED }
             )
@@ -93,7 +89,6 @@ export async function runBenchmark() {
         const { domain, bucketName, bucketPrefix, studyUid, seriesUid, sopUid } = testCases['OPT-Multiframe'];
         await server.fetchCod(
           createFetchCodUrl(domain, bucketName, bucketPrefix, studyUid, seriesUid, sopUid, 1),
-          'imageId',
           { ...(header ? { Authorization: header } : {}) },
           { useSharedArrayBuffer: false, fetchType: FetchType.API_OPTIMIZED }
         );
@@ -111,7 +106,6 @@ export async function runBenchmark() {
           promises.push(
             server.fetchCod(
               createFetchCodUrl(domain, bucketName, bucketPrefix, studyUid, seriesUid, sopUid, frameIndex + 1),
-              'imageId',
               { ...(header ? { Authorization: header } : {}) },
               { useSharedArrayBuffer: false, fetchType: FetchType.API_OPTIMIZED }
             )
@@ -128,7 +122,6 @@ export async function runBenchmark() {
         const { domain, bucketName, bucketPrefix, studyUid, seriesUid, sopUid } = testCases['MG-Multiframe'];
         await server.fetchCod(
           createFetchCodUrl(domain, bucketName, bucketPrefix, studyUid, seriesUid, sopUid, 1),
-          'imageId',
           { ...(header ? { Authorization: header } : {}) },
           { useSharedArrayBuffer: false, fetchType: FetchType.API_OPTIMIZED }
         );
@@ -146,7 +139,6 @@ export async function runBenchmark() {
           promises.push(
             server.fetchCod(
               createFetchCodUrl(domain, bucketName, bucketPrefix, studyUid, seriesUid, sopUid, frameIndex + 1),
-              'imageId',
               { ...(header ? { Authorization: header } : {}) },
               { useSharedArrayBuffer: false, fetchType: FetchType.API_OPTIMIZED }
             )
@@ -163,7 +155,6 @@ export async function runBenchmark() {
         const { domain, bucketName, bucketPrefix, studyUid, seriesUid, sopUid } = testCases['MG-Singleframe'];
         await server.fetchCod(
           createFetchCodUrl(domain, bucketName, bucketPrefix, studyUid, seriesUid, sopUid, 1),
-          'imageId',
           { ...(header ? { Authorization: header } : {}) },
           { useSharedArrayBuffer: false, fetchType: FetchType.API_OPTIMIZED }
         );

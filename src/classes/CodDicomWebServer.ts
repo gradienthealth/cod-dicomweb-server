@@ -61,7 +61,6 @@ class CodDicomWebServer {
 
   public async fetchCod(
     wadorsUrl: string,
-    imageId: string,
     headers: Record<string, string> | undefined = {},
     { useSharedArrayBuffer = false, fetchType = constants.Enums.FetchType.API_OPTIMIZED }: CODRequestOptions = {}
   ): Promise<ArrayBufferLike | InstanceMetadata | SeriesMetadata | undefined> {

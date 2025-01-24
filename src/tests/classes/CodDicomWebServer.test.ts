@@ -100,59 +100,54 @@ describe('CodDicomWebServer', () => {
 
     it('should throw an error if wadorsUrl is invalid', async () => {
       const wadorsUrl = '';
-      const imageId = 'dicomtar' + wadorsUrl;
       const headers = { 'Content-Type': 'application/json' };
       const options = { useSharedArrayBuffer: true, fetchType: Enums.FetchType.API_OPTIMIZED };
-      await expect(server.fetchCod(wadorsUrl, imageId, headers, options)).rejects.toThrow('CodDicomWebServer.ts: Url not provided');
+      await expect(server.fetchCod(wadorsUrl, headers, options)).rejects.toThrow('CodDicomWebServer.ts: Url not provided');
     });
 
     it('should fetch COD data for non-wadors url', async () => {
       const wadorsUrl = 'https://example.com/wadors';
-      const imageId = 'dicomtar' + wadorsUrl;
       const headers = { 'Content-Type': 'application/json' };
       const expected = Uint8Array.from([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]).buffer;
       jest.spyOn(server, 'fetchFile').mockResolvedValueOnce(expected);
       const options = { useSharedArrayBuffer: true, fetchType: Enums.FetchType.API_OPTIMIZED };
 
-      await expect(server.fetchCod(wadorsUrl, imageId, headers, options)).resolves.toEqual(expected);
+      await expect(server.fetchCod(wadorsUrl, headers, options)).resolves.toEqual(expected);
     });
 
     it('should return instance metadata for wadors url for instance metadata', async () => {
       server.setOptions({ domain: 'https://example.com' });
       const wadorsUrl =
         'https://example.com/<bucketName>/<bucketPrefixWith>/dicomweb/studies/<studyUid>/series/<seriesUid>/instances/<sopUid-1>/metadata';
-      const imageId = 'dicomtar' + wadorsUrl;
       const headers = { 'Content-Type': 'application/json' };
       const options = { useSharedArrayBuffer: true, fetchType: Enums.FetchType.API_OPTIMIZED };
 
       const expected = { '00080018': { Value: ['<sopUid-1>'], vr: 'UI' } };
-      await expect(server.fetchCod(wadorsUrl, imageId, headers, options)).resolves.toEqual(expected);
+      await expect(server.fetchCod(wadorsUrl, headers, options)).resolves.toEqual(expected);
     });
 
     it('should return series metadata for wadors url for series metadata', async () => {
       server.setOptions({ domain: 'https://example.com' });
       const wadorsUrl =
         'https://example.com/<bucketName>/<bucketPrefixWith>/dicomweb/studies/<studyUid>/series/<seriesUid>/metadata';
-      const imageId = 'dicomtar' + wadorsUrl;
       const headers = { 'Content-Type': 'application/json' };
       const options = { useSharedArrayBuffer: true, fetchType: Enums.FetchType.API_OPTIMIZED };
 
       const expected = [{ '00080018': { Value: ['<sopUid-1>'], vr: 'UI' } }];
-      await expect(server.fetchCod(wadorsUrl, imageId, headers, options)).resolves.toEqual(expected);
+      await expect(server.fetchCod(wadorsUrl, headers, options)).resolves.toEqual(expected);
     });
 
     it('should fetch thumbnail data for wadors url for thumbnail', async () => {
       server.setOptions({ domain: 'https://example.com' });
       const wadorsUrl =
         'https://example.com/<bucketName>/<bucketPrefixWith>/dicomweb/studies/<studyUid>/series/<seriesUid>/thumbnail';
-      const imageId = 'dicomtar' + wadorsUrl;
-      const headers = { 'Content-Type': 'application/json' };
+      const headers = { 'Content-Type': 'application/octet-stream' };
       const options = { useSharedArrayBuffer: true, fetchType: Enums.FetchType.API_OPTIMIZED };
       const expected = Uint8Array.from([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]).buffer;
       const fetchFileMock = jest.spyOn(server, 'fetchFile');
       fetchFileMock.mockResolvedValueOnce(expected);
 
-      await expect(server.fetchCod(wadorsUrl, imageId, headers, options)).resolves.toEqual(expected);
+      await expect(server.fetchCod(wadorsUrl, headers, options)).resolves.toEqual(expected);
       expect(fetchFileMock).toHaveBeenCalledWith('https://example.com/<bucketName>/<bucketPrefix>/path/to/thumbnail', headers, {
         useSharedArrayBuffer: options.useSharedArrayBuffer
       });
@@ -162,14 +157,13 @@ describe('CodDicomWebServer', () => {
       server.setOptions({ domain: 'https://example.com' });
       const wadorsUrl =
         'https://example.com/<bucketName>/<bucketPrefixWith>/dicomweb/studies/<studyUid>/series/<seriesUid>/instances/<sopUid-1>/frames/2';
-      const imageId = 'dicomtar' + wadorsUrl;
-      const headers = { 'Content-Type': 'application/json' };
+      const headers = { 'Content-Type': 'application/octet-stream' };
       const options = { useSharedArrayBuffer: true, fetchType: Enums.FetchType.BYTES_OPTIMIZED };
       const expected = Uint8Array.from([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]).buffer;
       const fetchFileMock = jest.spyOn(server, 'fetchFile');
       fetchFileMock.mockResolvedValueOnce(expected);
 
-      await expect(server.fetchCod(wadorsUrl, imageId, headers, options)).resolves.toEqual(expected);
+      await expect(server.fetchCod(wadorsUrl, headers, options)).resolves.toEqual(expected);
       expect(fetchFileMock).toHaveBeenCalledWith(
         'https://example.com/<bucketName>/<bucketPrefixWith>/dicomweb/studies/relative/url/to/the/file?bytes=220-310',
         headers,
@@ -189,7 +183,7 @@ describe('CodDicomWebServer', () => {
 
     it('should throw an error if the request types is not API_Optimzed or Bytes_Optimized', async () => {
       const fileUrl = 'fileUrl';
-      const headers = { 'Content-Type': 'application/json' };
+      const headers = { 'Content-Type': 'application/octet-stream' };
       const options = {
         offsets: { startByte: 20, endByte: 100 },
         useSharedArrayBuffer: true,
@@ -204,7 +198,7 @@ describe('CodDicomWebServer', () => {
 
     it('should throw an error if the maxFetchSize has been exceeded', async () => {
       const fileUrl = 'fileUrl';
-      const headers = { 'Content-Type': 'application/json' };
+      const headers = { 'Content-Type': 'application/octet-stream' };
       const options = {
         offsets: { startByte: 20, endByte: 100 },
         useSharedArrayBuffer: true,
@@ -221,7 +215,7 @@ describe('CodDicomWebServer', () => {
 
     it('should return the file if cached in the fileManager', async () => {
       const fileUrl = 'fileUrl';
-      const headers = { 'Content-Type': 'application/json' };
+      const headers = { 'Content-Type': 'application/octet-stream' };
       const options = {
         offsets: { startByte: 20, endByte: 100 },
         useSharedArrayBuffer: true,

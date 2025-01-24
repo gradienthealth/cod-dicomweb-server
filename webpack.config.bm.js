@@ -36,7 +36,7 @@ module.exports = {
       directory: path.join(__dirname, 'benchmarks')
     },
     port: 8080,
-    // open: true,
+    open: true,
     hot: true
   },
   module: {
@@ -63,8 +63,7 @@ module.exports = {
         collapseWhitespace: true,
         removeComments: true
       }
-    }),
-    new webpack.HotModuleReplacementPlugin()
+    })
   ],
   resolve: {
     extensions: ['.ts', '.js', '.json']

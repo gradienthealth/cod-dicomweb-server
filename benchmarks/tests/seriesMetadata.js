@@ -10,7 +10,7 @@ export async function runBenchmark() {
   let server;
 
   const createFetchCodUrl = (domain, bucketName, bucketPrefix, studyUid, seriesUid) => {
-    return `dicomtar:${domain}/${bucketName}/${
+    return `${domain}/${bucketName}/${
       bucketPrefix ? bucketPrefix + '/' : ''
     }studies/${studyUid}/series/${seriesUid}/metadata`;
   };

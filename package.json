@@ -1,7 +1,7 @@
 {
   "name": "cod-dicomweb-server",
   "title": "COD Dicomweb server",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "private": false,
   "description": "A wadors server proxy that get data from a Cloud Optimized Dicom format.",
   "main": "dist/main.js",
