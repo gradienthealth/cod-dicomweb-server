@@ -1,11 +1,9 @@
-import { Suite } from 'benchmark';
-
 import { CodDicomWebServer, FetchType } from '../../../dist/main';
 import { testCases } from '../../testDataDetails';
 import { createBenchmarkTestOptions, getAuthorizationHeader } from '../../utils';
 
 export async function runBenchmark() {
-  const suite = Suite();
+  const suite = new Benchmark.Suite();
   const header = await getAuthorizationHeader();
   let server;
 

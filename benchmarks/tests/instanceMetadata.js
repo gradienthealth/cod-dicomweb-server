@@ -1,11 +1,9 @@
-import { Suite } from 'benchmark';
-
 import { CodDicomWebServer } from '../../dist/main';
 import { testCases } from '../testDataDetails';
 import { createBenchmarkTestOptions, getAuthorizationHeader } from '../utils';
 
 export async function runBenchmark() {
-  const suite = Suite();
+  const suite = new Benchmark.Suite();
   const header = await getAuthorizationHeader();
   let server;
 
@@ -21,7 +19,7 @@ export async function runBenchmark() {
       createBenchmarkTestOptions(async () => {
         server = new CodDicomWebServer();
         const { domain, bucketName, bucketPrefix, studyUid, seriesUid, sopUid } = testCases['CT-MultiInstance'];
-        await server.fetchCod(createFetchCodUrl(domain, bucketName, bucketPrefix, studyUid, seriesUid, sopUid[0]), 'imageId', {
+        await server.fetchCod(createFetchCodUrl(domain, bucketName, bucketPrefix, studyUid, seriesUid, sopUid[0]), {
           ...(header ? { Authorization: header } : {})
         });
       })
@@ -37,7 +35,7 @@ export async function runBenchmark() {
           promises.push(
             await server.fetchCod(
               createFetchCodUrl(domain, bucketName, bucketPrefix, studyUid, seriesUid, sopUid[frameIndex]),
-              'imageId',
+
               { ...(header ? { Authorization: header } : {}) }
             )
           );
@@ -51,7 +49,7 @@ export async function runBenchmark() {
       createBenchmarkTestOptions(async () => {
         server = new CodDicomWebServer();
         const { domain, bucketName, bucketPrefix, studyUid, seriesUid, sopUid } = testCases['MR-Multiframe'];
-        await server.fetchCod(createFetchCodUrl(domain, bucketName, bucketPrefix, studyUid, seriesUid, sopUid), 'imageId', {
+        await server.fetchCod(createFetchCodUrl(domain, bucketName, bucketPrefix, studyUid, seriesUid, sopUid), {
           ...(header ? { Authorization: header } : {})
         });
       })
@@ -61,7 +59,7 @@ export async function runBenchmark() {
       createBenchmarkTestOptions(async () => {
         server = new CodDicomWebServer();
         const { domain, bucketName, bucketPrefix, studyUid, seriesUid, sopUid } = testCases['OPT-Multiframe'];
-        await server.fetchCod(createFetchCodUrl(domain, bucketName, bucketPrefix, studyUid, seriesUid, sopUid), 'imageId', {
+        await server.fetchCod(createFetchCodUrl(domain, bucketName, bucketPrefix, studyUid, seriesUid, sopUid), {
           ...(header ? { Authorization: header } : {})
         });
       })
@@ -71,7 +69,7 @@ export async function runBenchmark() {
       createBenchmarkTestOptions(async () => {
         server = new CodDicomWebServer();
         const { domain, bucketName, bucketPrefix, studyUid, seriesUid, sopUid } = testCases['MG-Multiframe'];
-        await server.fetchCod(createFetchCodUrl(domain, bucketName, bucketPrefix, studyUid, seriesUid, sopUid), 'imageId', {
+        await server.fetchCod(createFetchCodUrl(domain, bucketName, bucketPrefix, studyUid, seriesUid, sopUid), {
           ...(header ? { Authorization: header } : {})
         });
       })
@@ -81,7 +79,7 @@ export async function runBenchmark() {
       createBenchmarkTestOptions(async () => {
         server = new CodDicomWebServer();
         const { domain, bucketName, bucketPrefix, studyUid, seriesUid, sopUid } = testCases['MG-Singleframe'];
-        await server.fetchCod(createFetchCodUrl(domain, bucketName, bucketPrefix, studyUid, seriesUid, sopUid), 'imageId', {
+        await server.fetchCod(createFetchCodUrl(domain, bucketName, bucketPrefix, studyUid, seriesUid, sopUid), {
           ...(header ? { Authorization: header } : {})
         });
       })
