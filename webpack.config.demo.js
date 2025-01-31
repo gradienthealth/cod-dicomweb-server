@@ -31,14 +31,6 @@ module.exports = {
     minimize: true,
     minimizer: [new TerserPlugin({ extractComments: false })]
   },
-  devServer: {
-    static: {
-      directory: path.join(__dirname, 'demo')
-    },
-    port: 8080,
-    open: true,
-    hot: true
-  },
   module: {
     rules: [
       {
@@ -59,10 +51,6 @@ module.exports = {
       filename: 'index.html',
       template: './demo/index.html',
       cache: true
-      //   minify: {
-      //     collapseWhitespace: true,
-      //     removeComments: true
-      //   }
     })
   ],
   resolve: {

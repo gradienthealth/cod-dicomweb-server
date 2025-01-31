@@ -27,7 +27,7 @@
   "license": "MIT",
   "scripts": {
     "build": "webpack --config webpack.config.js && tsc",
-    "build:demo": "yarn build && webpack serve --config webpack.config.demo.js",
+    "build:demo": "yarn build && webpack --config webpack.config.demo.js",
     "test": "NODE_ENV=test jest --silent --verbose",
     "coverage": "npm run test -- --coverage",
     "benchmark": "webpack serve --config webpack.config.bm.js",
