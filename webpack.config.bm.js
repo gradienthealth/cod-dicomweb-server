@@ -32,9 +32,6 @@ module.exports = {
     minimizer: [new TerserPlugin({ extractComments: false })]
   },
   devServer: {
-    static: {
-      directory: path.join(__dirname, 'benchmarks')
-    },
     port: 8080,
     open: true,
     hot: true
