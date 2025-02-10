@@ -20,10 +20,10 @@ ${repository.url}
 module.exports = {
   mode: 'production',
   devtool: 'source-map',
-  entry: { main: './src/index.ts', demo: './demo/index.js' },
+  entry: { main: './src/index.ts', example: './example/index.js' },
   output: {
     filename: '[name].js',
-    path: path.resolve(__dirname, 'dist', 'demo'),
+    path: path.resolve(__dirname, 'dist', 'example'),
     libraryTarget: 'umd',
     clean: true
   },
@@ -44,12 +44,12 @@ module.exports = {
   },
   plugins: [
     new CleanWebpackPlugin({
-      root: path.resolve(__dirname, 'dist', 'demo')
+      root: path.resolve(__dirname, 'dist', 'example')
     }),
     new webpack.BannerPlugin(banner),
     new HtmlWebpackPlugin({
       filename: 'index.html',
-      template: './demo/index.html',
+      template: './example/index.html',
       cache: true
     })
   ],

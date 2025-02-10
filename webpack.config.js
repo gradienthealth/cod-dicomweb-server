@@ -22,7 +22,7 @@ module.exports = {
   entry: './src/index.ts',
   output: {
     filename: '[name].js',
-    path: path.resolve(__dirname, 'dist'),
+    path: path.resolve(__dirname, 'dist', 'umd'),
     libraryTarget: 'umd',
     clean: true
   },
@@ -43,7 +43,7 @@ module.exports = {
   },
   plugins: [
     new CleanWebpackPlugin({
-      root: path.resolve(__dirname, 'dist')
+      root: path.resolve(__dirname, 'dist', 'umd')
     }),
     new webpack.BannerPlugin(banner)
   ],

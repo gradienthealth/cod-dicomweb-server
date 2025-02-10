@@ -5,7 +5,23 @@ const URL_RESPONSES = {
   ok_but_no_json_function: { ok: true },
   ok_but_failed_json_function: { ok: true, json: () => Promise.reject(new Error('Error Parsing')) },
   ok_but_empty_json: { ok: true, json: () => Promise.resolve({}) },
-  working_case: { ok: true, json: () => Promise.resolve({ id: 1, name: 'sample' }) }
+  working_case: {
+    ok: true,
+    json: () =>
+      Promise.resolve({
+        deid_study_uid: '<deidStudyUid>',
+        deid_series_uid: '<deidSeriesUid>',
+        cod: {
+          instances: {
+            //@ts-ignore
+            '<deidSopUid>': {
+              metadata: { '00080018': { vr: 'UI', Value: ['<sopUid-1>'] } },
+              uri: 'studies/relative/url/to/the/file'
+            }
+          }
+        }
+      })
+  }
 };
 
 describe('getMetadata', () => {
@@ -70,6 +86,8 @@ describe('getMetadata', () => {
     createMetadataJsonUrlMock.mockImplementation(() => 'working_case');
 
     const expected = await URL_RESPONSES.working_case.json();
+    // @ts-ignore
+    metadataManager.addDeidMetadata(expected);
     await expect(metadataManager.getMetadata(params, headers)).resolves.toEqual(expected);
   });
 

@@ -8,12 +8,12 @@ import { registerWorkers } from '../webWorker/registerWorkers';
 import constants, { Enums } from '../constants';
 import type {
   CodDicomWebServerOptions,
-  InstanceMetadata,
-  JsonMetadata,
-  SeriesMetadata,
   CODRequestOptions,
   FileRequestOptions,
-  FileStreamingMessageEvent
+  FileStreamingMessageEvent,
+  InstanceMetadata,
+  JsonMetadata,
+  SeriesMetadata
 } from '../types';
 
 class CodDicomWebServer {

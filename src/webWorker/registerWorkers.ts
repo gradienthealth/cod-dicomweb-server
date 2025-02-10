@@ -12,7 +12,7 @@ export function registerWorkers(
 
   // fileStreaming worker
   const streamingWorkerFn = (): Worker =>
-    new Worker(new URL('./workers/fileStreamingWorker.ts', import.meta.url), {
+    new Worker(new URL('./workers/fileStreamingWorker', import.meta.url), {
       name: fileStreamingWorkerName
     });
 
@@ -21,7 +21,7 @@ export function registerWorkers(
 
   // filePartial worker
   const partialWorkerFn = (): Worker =>
-    new Worker(new URL('./workers/filePartialWorker.ts', import.meta.url), {
+    new Worker(new URL('./workers/filePartialWorker', import.meta.url), {
       name: filePartialWorkerName
     });
 
