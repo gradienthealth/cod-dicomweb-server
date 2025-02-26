@@ -3,11 +3,11 @@ import FileManager from '../fileManager';
 describe('FileManager', () => {
   let fileManager: FileManager;
 
-  const getWebWorkerManagerMock = jest.spyOn(require('../webWorker/workerManager'), 'getWebWorkerManager');
-  getWebWorkerManagerMock.mockImplementation(() => ({ executeTask: jest.fn() }));
+  const getDataRetrievalManagerMock = jest.spyOn(require('../dataRetrieval/dataRetrievalManager'), 'getDataRetrievalManager');
+  getDataRetrievalManagerMock.mockImplementation(() => ({ executeTask: jest.fn() }));
 
   beforeEach(() => {
-    fileManager = new FileManager({ fileStreamingWorkerName: 'test-worker' });
+    fileManager = new FileManager({ fileStreamingScriptName: 'test-worker' });
     jest.clearAllMocks();
   });
 
@@ -127,7 +127,7 @@ describe('FileManager', () => {
     fileManager.remove(url);
 
     expect(fileManager.get(url)).toBeNull();
-    expect(getWebWorkerManagerMock).toHaveBeenCalledTimes(1);
+    expect(getDataRetrievalManagerMock).toHaveBeenCalledTimes(1);
   });
 
   it('should remove file but wont call getWebWorkerManager', () => {
@@ -137,7 +137,7 @@ describe('FileManager', () => {
     fileManager.remove(url);
 
     expect(fileManager.get(url)).toBeNull();
-    expect(getWebWorkerManagerMock).not.toHaveBeenCalled();
+    expect(getDataRetrievalManagerMock).not.toHaveBeenCalled();
   });
 
   it('should purge all files', () => {
@@ -151,6 +151,6 @@ describe('FileManager', () => {
 
     expect(fileManager.get(url1)).toBeNull();
     expect(fileManager.get(url2)).toBeNull();
-    expect(getWebWorkerManagerMock).toHaveBeenCalledTimes(1);
+    expect(getDataRetrievalManagerMock).toHaveBeenCalledTimes(1);
   });
 });

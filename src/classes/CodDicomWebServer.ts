@@ -3,18 +3,19 @@ import { parseDicom } from 'dicom-parser';
 import FileManager from '../fileManager';
 import MetadataManager from '../metadataManager';
 import { getFrameDetailsFromMetadata, parseWadorsURL } from './utils';
-import { getWebWorkerManager } from '../webWorker/workerManager';
-import { registerWorkers } from '../webWorker/registerWorkers';
+import { register } from '../dataRetrieval/register';
 import constants, { Enums } from '../constants';
 import type {
   CodDicomWebServerOptions,
   CODRequestOptions,
   FileRequestOptions,
-  FileStreamingMessageEvent,
   InstanceMetadata,
   JsonMetadata,
   SeriesMetadata
 } from '../types';
+import { getDataRetrievalManager } from '../dataRetrieval/dataRetrievalManager';
+import { CustomError, CustomMessageEvent } from './customClasses';
+import { CustomErrorEvent } from './customClasses';
 
 class CodDicomWebServer {
   private filePromises: Record<string, Promise<void>> = {};
@@ -26,17 +27,22 @@ class CodDicomWebServer {
   private metadataManager;
   private seriesUidFileUrls: Record<string, string[]> = {};
 
-  constructor(args: { maxWorkerFetchSize?: number; domain?: string } = {}) {
-    const { maxWorkerFetchSize, domain } = args;
+  constructor(args: { maxWorkerFetchSize?: number; domain?: string; disableWorker?: boolean } = {}) {
+    const { maxWorkerFetchSize, domain, disableWorker } = args;
 
     this.options.maxWorkerFetchSize = maxWorkerFetchSize || this.options.maxWorkerFetchSize;
     this.options.domain = domain || this.options.domain;
-    const fileStreamingWorkerName = constants.worker.FILE_STREAMING_WORKER_NAME;
-    const filePartialWorkerName = constants.worker.FILE_PARTIAL_WORKER_NAME;
-    this.fileManager = new FileManager({ fileStreamingWorkerName });
+    const fileStreamingScriptName = constants.dataRetrieval.FILE_STREAMING_WORKER_NAME;
+    const filePartialScriptName = constants.dataRetrieval.FILE_PARTIAL_WORKER_NAME;
+    this.fileManager = new FileManager({ fileStreamingScriptName });
     this.metadataManager = new MetadataManager();
 
-    registerWorkers({ fileStreamingWorkerName, filePartialWorkerName }, this.options.maxWorkerFetchSize);
+    if (disableWorker) {
+      const dataRetrievalManager = getDataRetrievalManager();
+      dataRetrievalManager.setDataRetrieverMode(Enums.DataRetrieveMode.REQUEST);
+    }
+
+    register({ fileStreamingScriptName, filePartialScriptName }, this.options.maxWorkerFetchSize);
   }
 
   public setOptions = (newOptions: Partial<CodDicomWebServerOptions>): void => {
@@ -66,7 +72,7 @@ class CodDicomWebServer {
   ): Promise<ArrayBufferLike | InstanceMetadata | SeriesMetadata | undefined> {
     try {
       if (!wadorsUrl) {
-        throw new Error('Url not provided');
+        throw new CustomError('Url not provided');
       }
 
       const parsedDetails = parseWadorsURL(wadorsUrl, this.options.domain);
@@ -87,7 +93,7 @@ class CodDicomWebServer {
         );
 
         if (!metadataJson) {
-          throw new Error(`Metadata not found for ${wadorsUrl}`);
+          throw new CustomError(`Metadata not found for ${wadorsUrl}`);
         }
 
         const {
@@ -105,7 +111,7 @@ class CodDicomWebServer {
         switch (type) {
           case Enums.RequestType.THUMBNAIL:
             if (!thumbnailUrl) {
-              throw new Error(`Thumbnail not found for ${wadorsUrl}`);
+              throw new CustomError(`Thumbnail not found for ${wadorsUrl}`);
             }
 
             this.addFileUrl(seriesInstanceUID, thumbnailUrl);
@@ -116,7 +122,7 @@ class CodDicomWebServer {
 
           case Enums.RequestType.FRAME: {
             if (!fileUrl) {
-              throw new Error('Url not found for frame');
+              throw new CustomError('Url not found for frame');
             }
 
             let urlWithBytes: string = fileUrl;
@@ -132,7 +138,7 @@ class CodDicomWebServer {
               fetchType
             }).then((arraybuffer) => {
               if (!arraybuffer?.byteLength) {
-                throw new Error('File Arraybuffer is not found');
+                throw new CustomError('File Arraybuffer is not found');
               }
 
               if (isMultiframe) {
@@ -158,7 +164,7 @@ class CodDicomWebServer {
             return this.parseMetadata(metadataJson, type, sopInstanceUID);
 
           default:
-            throw new Error(`Unsupported request type: ${type}`);
+            throw new CustomError(`Unsupported request type: ${type}`);
         }
       } else {
         return new Promise((resolve, reject) => {
@@ -182,7 +188,7 @@ class CodDicomWebServer {
         });
       }
     } catch (error) {
-      const newError = new Error(`CodDicomWebServer.ts: ${error.message || 'An error occured when fetching the COD'}`);
+      const newError = new CustomError(`CodDicomWebServer.ts: ${error.message || 'An error occured when fetching the COD'}`);
       console.error(newError);
       throw newError;
     }
@@ -207,21 +213,21 @@ class CodDicomWebServer {
     }
 
     const { maxWorkerFetchSize } = this.getOptions();
-    const webWorkerManager = getWebWorkerManager();
-    const { FILE_STREAMING_WORKER_NAME, FILE_PARTIAL_WORKER_NAME, THRESHOLD } = constants.worker;
+    const dataRetrievalManager = getDataRetrievalManager();
+    const { FILE_STREAMING_WORKER_NAME, FILE_PARTIAL_WORKER_NAME, THRESHOLD } = constants.dataRetrieval;
     let tarPromise: Promise<void>;
 
     if (!this.filePromises[fileUrl]) {
       tarPromise = new Promise<void>((resolveFile, rejectFile) => {
         if (this.fileManager.getTotalSize() + THRESHOLD > maxWorkerFetchSize) {
-          throw new Error(`CodDicomWebServer.ts: Maximum size(${maxWorkerFetchSize}) for fetching files reached`);
+          throw new CustomError(`CodDicomWebServer.ts: Maximum size(${maxWorkerFetchSize}) for fetching files reached`);
         }
 
         const FetchTypeEnum = constants.Enums.FetchType;
 
         if (fetchType === FetchTypeEnum.API_OPTIMIZED) {
-          const handleFirstChunk = (evt: FileStreamingMessageEvent | ErrorEvent): void => {
-            if (evt instanceof ErrorEvent) {
+          const handleFirstChunk = (evt: CustomMessageEvent | CustomErrorEvent): void => {
+            if (evt instanceof CustomErrorEvent) {
               rejectFile(evt.error);
               throw evt.error;
             }
@@ -231,53 +237,75 @@ class CodDicomWebServer {
             if (url === fileUrl && fileArraybuffer) {
               this.fileManager.set(url, { data: fileArraybuffer, position });
 
-              webWorkerManager.removeEventListener(FILE_STREAMING_WORKER_NAME, 'message', handleFirstChunk);
+              dataRetrievalManager.removeEventListener(FILE_STREAMING_WORKER_NAME, 'message', handleFirstChunk);
             }
           };
 
-          webWorkerManager.addEventListener(FILE_STREAMING_WORKER_NAME, 'message', handleFirstChunk);
-          webWorkerManager
+          dataRetrievalManager.addEventListener(FILE_STREAMING_WORKER_NAME, 'message', handleFirstChunk);
+          dataRetrievalManager
             .executeTask(FILE_STREAMING_WORKER_NAME, 'stream', {
               url: fileUrl,
               headers: headers,
               useSharedArrayBuffer
             })
             .then(() => {
-              resolveFile();
-            })
-            .catch((error) => {
-              webWorkerManager.removeEventListener(FILE_STREAMING_WORKER_NAME, 'message', handleFirstChunk);
-              rejectFile(error);
-            })
-            .then(() => delete this.filePromises[fileUrl]);
-        } else if (fetchType === FetchTypeEnum.BYTES_OPTIMIZED && offsets) {
-          const { startByte, endByte } = offsets;
-          headers['Range'] = `bytes=${startByte}-${endByte - 1}`;
-          const url = fileUrl.split('?bytes=')[0];
-
-          webWorkerManager
-            .executeTask(FILE_PARTIAL_WORKER_NAME, 'partial', {
-              url: url,
-              headers: headers,
-              useSharedArrayBuffer
-            })
-            .then((data) => {
-              if (data) {
-                this.fileManager.set(fileUrl, {
-                  data: new Uint8Array(data),
-                  position: data.byteLength
-                });
+              if (this.fileManager.getPosition(fileUrl)) {
                 resolveFile();
               } else {
-                rejectFile(new Error(`File - ${url} not found`));
+                rejectFile(new CustomError(`File - ${fileUrl} not found`));
               }
             })
             .catch((error) => {
               rejectFile(error);
             })
-            .then(() => delete this.filePromises[fileUrl]);
+            .then(() => {
+              dataRetrievalManager.removeEventListener(FILE_STREAMING_WORKER_NAME, 'message', handleFirstChunk);
+              delete this.filePromises[fileUrl];
+            });
+        } else if (fetchType === FetchTypeEnum.BYTES_OPTIMIZED && offsets) {
+          const { startByte, endByte } = offsets;
+          const bytesRemovedUrl = fileUrl.split('?bytes=')[0];
+
+          const handleSlice = (evt: CustomMessageEvent | CustomErrorEvent): void => {
+            if (evt instanceof CustomErrorEvent) {
+              rejectFile(evt.error);
+              throw evt.error;
+            }
+
+            const { url, fileArraybuffer, offsets } = evt.data;
+
+            if (url === bytesRemovedUrl && offsets.startByte === startByte && offsets.endByte === endByte) {
+              this.fileManager.set(fileUrl, { data: fileArraybuffer, position: fileArraybuffer.length });
+
+              dataRetrievalManager.removeEventListener(FILE_PARTIAL_WORKER_NAME, 'message', handleSlice);
+            }
+          };
+
+          dataRetrievalManager.addEventListener(FILE_PARTIAL_WORKER_NAME, 'message', handleSlice);
+
+          dataRetrievalManager
+            .executeTask(FILE_PARTIAL_WORKER_NAME, 'partial', {
+              url: bytesRemovedUrl,
+              offsets: { startByte, endByte },
+              headers,
+              useSharedArrayBuffer
+            })
+            .then(() => {
+              if (this.fileManager.getPosition(fileUrl)) {
+                resolveFile();
+              } else {
+                rejectFile(new CustomError(`File - ${fileUrl} not found`));
+              }
+            })
+            .catch((error) => {
+              rejectFile(error);
+            })
+            .then(() => {
+              dataRetrievalManager.removeEventListener(FILE_PARTIAL_WORKER_NAME, 'message', handleSlice);
+              delete this.filePromises[fileUrl];
+            });
         } else {
-          rejectFile(new Error('CodDicomWebServer.ts: Offsets is needed in bytes optimized fetching'));
+          rejectFile(new CustomError('CodDicomWebServer.ts: Offsets is needed in bytes optimized fetching'));
         }
       });
 
@@ -289,8 +317,8 @@ class CodDicomWebServer {
     return new Promise<ArrayBufferLike | undefined>((resolveRequest, rejectRequest) => {
       let requestResolved = false;
 
-      const handleChunkAppend = (evt: FileStreamingMessageEvent | ErrorEvent): void => {
-        if (evt instanceof ErrorEvent) {
+      const handleChunkAppend = (evt: CustomMessageEvent | CustomErrorEvent): void => {
+        if (evt instanceof CustomErrorEvent) {
           rejectRequest(evt.message);
           throw evt.error;
         }
@@ -317,7 +345,7 @@ class CodDicomWebServer {
       };
 
       if (offsets && !isBytesOptimized) {
-        webWorkerManager.addEventListener(FILE_STREAMING_WORKER_NAME, 'message', handleChunkAppend);
+        dataRetrievalManager.addEventListener(FILE_STREAMING_WORKER_NAME, 'message', handleChunkAppend);
       }
 
       tarPromise
@@ -332,7 +360,7 @@ class CodDicomWebServer {
           rejectRequest(error);
         })
         .then(() => {
-          webWorkerManager.removeEventListener(FILE_STREAMING_WORKER_NAME, 'message', handleChunkAppend);
+          dataRetrievalManager.removeEventListener(FILE_STREAMING_WORKER_NAME, 'message', handleChunkAppend);
         });
     });
   }

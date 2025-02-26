@@ -1,10 +1,10 @@
-import CodDicomWebServer from '../../classes/CodDicomWebServer';
+import { CodDicomWebServer } from '../../classes';
 import { Enums, url } from '../../constants';
-import type { JsonMetadata, CODRequestOptions, FileRequestOptions } from '../../types';
+import type { JsonMetadata } from '../../types';
 
 describe('CodDicomWebServer', () => {
   let server: CodDicomWebServer;
-  const getWebWorkerManagerMock = jest.spyOn(require('../../webWorker/workerManager'), 'getWebWorkerManager');
+  const getDataRetrievalManagerMock = jest.spyOn(require('../../dataRetrieval/dataRetrievalManager'), 'getDataRetrievalManager');
   const fileManagerMock = jest.spyOn(require('../../fileManager'), 'default');
   const metadataManagerMock = jest.spyOn(require('../../metadataManager'), 'default');
 
@@ -38,12 +38,13 @@ describe('CodDicomWebServer', () => {
   });
 
   beforeEach(() => {
-    getWebWorkerManagerMock.mockImplementation(() => ({
-      registerWorker: jest.fn(),
+    getDataRetrievalManagerMock.mockImplementation(() => ({
+      getDataRetrieverMode: jest.fn(),
+      register: jest.fn(),
       executeTask: jest.fn(() => Promise.resolve()),
       addEventListener: workerAddEventListener,
       removeEventListener: jest.fn(),
-      postMessage: jest.fn()
+      reset: jest.fn()
     }));
     fileManagerMock.mockImplementation(() => ({
       set: fileManagerSet,

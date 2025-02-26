@@ -1,3 +1,4 @@
+import { CustomError } from './classes/customClasses';
 import { createMetadataJsonUrl } from './classes/utils';
 import type { JsonMetadata, MetadataUrlCreationParams } from './types';
 
@@ -30,7 +31,7 @@ class MetadataManager {
     const url = createMetadataJsonUrl(params);
 
     if (!url) {
-      throw new Error('Error creating metadata json url');
+      throw new CustomError('Error creating metadata json url');
     }
 
     const cachedMetadata = this.getMetadataFromCache(url);
@@ -41,7 +42,7 @@ class MetadataManager {
     try {
       const response = await fetch(url, { headers });
       if (!response.ok) {
-        throw new Error(`Failed to fetch metadata: ${response.statusText}`);
+        throw new CustomError(`Failed to fetch metadata: ${response.statusText}`);
       }
       const data = await response.json();
       this.addDeidMetadata(data);

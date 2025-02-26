@@ -81,6 +81,21 @@ yarn benchmark
 
 - The benchmark output will be displayed in the browser's debugger console.
 
+## Demo
+
+You need to install all the dependencies and build the code to run the demo.<br>
+Also update the submodule using the command
+
+```bash
+yarn update:submodule:cornerstone3D
+```
+
+### Cod As A Client
+
+```bash
+yarn demo:client
+```
+
 ## Contributing
 
 Contributions are welcome! Please follow these steps:

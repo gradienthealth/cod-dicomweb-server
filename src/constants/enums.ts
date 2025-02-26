@@ -16,3 +16,8 @@ export enum RequestType {
   SERIES_METADATA,
   INSTANCE_METADATA
 }
+
+export enum DataRetrieveMode {
+  WORKER,
+  REQUEST
+}

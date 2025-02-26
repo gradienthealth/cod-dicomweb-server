@@ -4,4 +4,4 @@ export * from './metadata';
 export * from './metadataUrlCreationParams';
 export * from './parsedWadoRsUrlDetails';
 export * from './requestOptions';
-export * from './workerCustomMessageEvents';
+export * from './scriptObject';

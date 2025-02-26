@@ -29,11 +29,15 @@
   "scripts": {
     "build:umd": "webpack --config webpack.config.js",
     "build:esm": "rm -rf dist/esm && tsc --project ./tsconfig.json",
-    "build": "yarn build:umd && yarn build:esm",
-    "build:example": "yarn build && webpack --config webpack.config.example.js",
-    "test": "NODE_ENV=test jest --silent --verbose",
+    "build:cjs": "webpack --config webpack.config.cjs.js",
+    "build": "yarn build:umd && yarn build:esm && yarn build:cjs",
+    "build:example": "yarn build:umd && webpack --config webpack.config.example.js",
+    "copy:example:codAsAClient": "mkdir -p demo/cornerstone3D/packages/core/examples/cod-dicomweb-server-as-a-client && cp demo/codAsAClient/index.ts demo/cornerstone3D/packages/core/examples/cod-dicomweb-server-as-a-client/",
+    "demo:client": "yarn build:esm && yarn copy:example:codAsAClient && cd demo/cornerstone3D && yarn run example cod-dicomweb-server-as-a-client",
+    "test": "NODE_ENV=test jest --silent --verbose --testPathPattern=src",
     "coverage": "npm run test -- --coverage",
     "benchmark": "webpack serve --config webpack.config.bm.js",
+    "update:submodule:cornerstone3D": "git submodule update --init demo/cornerstone3D && cd demo/cornerstone3D && yarn install && yarn build:all",
     "publish:npm": "npm login && npm publish"
   },
   "devDependencies": {

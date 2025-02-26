@@ -1,10 +1,10 @@
-import { getWebWorkerManager } from '../../webWorker/workerManager';
+import WebWorkerManager from '../../dataRetrieval/workerManager';
 
 describe('WebWorkerManager', () => {
   let worker: Worker;
   const comlinkWrapMock = jest.spyOn(require('comlink'), 'wrap');
 
-  describe('registerWorker', () => {
+  describe('register', () => {
     beforeAll(() => {
       global.Worker = jest.fn().mockImplementation((filePath: string) => {
         return {
@@ -24,9 +24,9 @@ describe('WebWorkerManager', () => {
     });
 
     it('should register a worker without throwing an error', () => {
-      const webWorkerManager = getWebWorkerManager();
+      const webWorkerManager = new WebWorkerManager();
       const workerFn = jest.fn(() => worker);
-      expect(() => webWorkerManager.registerWorker('test_worker', workerFn)).not.toThrow();
+      expect(webWorkerManager.register('test_worker', workerFn)).toBeUndefined();
       expect(workerFn).toHaveBeenCalledTimes(1);
     });
   });
@@ -37,7 +37,7 @@ describe('WebWorkerManager', () => {
     });
 
     it('should throw an error if worker not registered', async () => {
-      const webWorkerManager = getWebWorkerManager();
+      const webWorkerManager = new WebWorkerManager();
       const taskName = 'testTask';
       const options = {};
 
@@ -49,9 +49,9 @@ describe('WebWorkerManager', () => {
     it('should throw an error if workertask not in the worker', async () => {
       comlinkWrapMock.mockImplementation(jest.fn((worker) => ({ testTask: () => 'sample' })));
 
-      const webWorkerManager = getWebWorkerManager();
+      const webWorkerManager = new WebWorkerManager();
       const workerFn = jest.fn(() => worker);
-      webWorkerManager.registerWorker('testWorker', workerFn);
+      webWorkerManager.register('testWorker', workerFn);
       const taskName = 'invalidTask';
       const options = {};
 
@@ -65,9 +65,9 @@ describe('WebWorkerManager', () => {
     it('should execute a task without throwing an error', async () => {
       comlinkWrapMock.mockImplementation(jest.fn((worker) => ({ testTask: () => 'sample' })));
 
-      const webWorkerManager = getWebWorkerManager();
+      const webWorkerManager = new WebWorkerManager();
       const workerFn = jest.fn(() => worker);
-      webWorkerManager.registerWorker('testWorker', workerFn);
+      webWorkerManager.register('testWorker', workerFn);
       const taskName = 'testTask';
       const options = {};
 
@@ -83,25 +83,25 @@ describe('WebWorkerManager', () => {
     });
 
     it('should add an event listener without throwing an error', () => {
-      const webWorkerManager = getWebWorkerManager();
+      const webWorkerManager = new WebWorkerManager();
       const listener = jest.fn();
-      expect(() => webWorkerManager.addEventListener('test_worker', 'message', listener)).not.toThrow();
+      expect(webWorkerManager.addEventListener('test_worker', 'message', listener)).toBeUndefined();
     });
 
     it('should call the event listener from the worker', () => {
       comlinkWrapMock.mockImplementation(jest.fn((worker) => ({ testTask: () => 'sample' })));
-      const webWorkerManager = getWebWorkerManager();
+      const webWorkerManager = new WebWorkerManager();
       const listener = jest.fn();
-      expect(() => webWorkerManager.addEventListener('test_worker', 'message', listener)).not.toThrow();
+      expect(webWorkerManager.addEventListener('test_worker', 'message', listener)).toBeUndefined();
     });
   });
 
   describe('removeEventListener', () => {
     it('should remove an event listener without throwing an error', () => {
-      const webWorkerManager = getWebWorkerManager();
+      const webWorkerManager = new WebWorkerManager();
       const listener = jest.fn();
       webWorkerManager.addEventListener('test_worker', 'message', listener);
-      expect(() => webWorkerManager.removeEventListener('test-worker', 'message', listener)).not.toThrow();
+      expect(webWorkerManager.removeEventListener('test-worker', 'message', listener)).toBeUndefined();
     });
   });
 });

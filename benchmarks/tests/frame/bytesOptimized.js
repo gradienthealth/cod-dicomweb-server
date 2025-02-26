@@ -1,4 +1,4 @@
-import { CodDicomWebServer, FetchType } from '../../../dist/main';
+import { CodDicomWebServer, FetchType } from '../../../dist/umd/main';
 import { testCases } from '../../testDataDetails';
 import { createBenchmarkTestOptions, getAuthorizationHeader } from '../../utils';
 

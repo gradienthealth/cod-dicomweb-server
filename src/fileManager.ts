@@ -1,12 +1,12 @@
 import type { FileManagerOptions } from './types';
-import { getWebWorkerManager } from './webWorker/workerManager';
+import { getDataRetrievalManager } from './dataRetrieval/dataRetrievalManager';
 
 class FileManager {
   private files: Record<string, { data: Uint8Array; position: number }> = {};
-  private fileStreamingWorkerName: string;
+  private fileStreamingScriptName: string;
 
-  constructor({ fileStreamingWorkerName }: FileManagerOptions) {
-    this.fileStreamingWorkerName = fileStreamingWorkerName;
+  constructor({ fileStreamingScriptName }: FileManagerOptions) {
+    this.fileStreamingScriptName = fileStreamingScriptName;
   }
 
   set(url: string, file: { data: Uint8Array; position: number }): void {
@@ -52,16 +52,16 @@ class FileManager {
       return;
     }
 
-    const workerManager = getWebWorkerManager();
-    workerManager.executeTask(this.fileStreamingWorkerName, 'decreaseFetchedSize', removedSize);
+    const retrievalManager = getDataRetrievalManager();
+    retrievalManager.executeTask(this.fileStreamingScriptName, 'decreaseFetchedSize', removedSize);
   }
 
   purge(): void {
     const totalSize = this.getTotalSize();
     this.files = {};
 
-    const workerManager = getWebWorkerManager();
-    workerManager.executeTask(this.fileStreamingWorkerName, 'decreaseFetchedSize', totalSize);
+    const retrievalManager = getDataRetrievalManager();
+    retrievalManager.executeTask(this.fileStreamingScriptName, 'decreaseFetchedSize', totalSize);
   }
 }
 

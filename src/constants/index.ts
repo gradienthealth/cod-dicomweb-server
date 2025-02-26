@@ -1,8 +1,8 @@
 import * as Enums from './enums';
 import * as url from './url';
-import * as worker from './worker';
+import * as dataRetrieval from './dataRetrieval';
 
-const constants = { Enums, url, worker };
+const constants = { Enums, url, dataRetrieval };
 
-export { Enums, url, worker };
+export { Enums, url, dataRetrieval };
 export default constants;

@@ -1,9 +1,10 @@
+import { CustomError } from '../classes/customClasses';
 import MetadataManager from '../metadataManager';
 
 const URL_RESPONSES = {
   not_ok: { ok: false, statusText: 'Unsuccessful fetch' },
   ok_but_no_json_function: { ok: true },
-  ok_but_failed_json_function: { ok: true, json: () => Promise.reject(new Error('Error Parsing')) },
+  ok_but_failed_json_function: { ok: true, json: () => Promise.reject(new CustomError('Error Parsing')) },
   ok_but_empty_json: { ok: true, json: () => Promise.resolve({}) },
   working_case: {
     ok: true,

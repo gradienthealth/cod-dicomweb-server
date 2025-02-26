@@ -1,5 +1,6 @@
 import constants, { Enums } from '../constants';
 import type { JsonMetadata, MetadataUrlCreationParams, ParsedWadoRsUrlDetails } from '../types';
+import { CustomError } from './customClasses';
 
 export function parseWadorsURL(url: string, domain: string): ParsedWadoRsUrlDetails | undefined {
   if (!url.includes(constants.url.URL_VALIDATION_STRING)) {
@@ -41,7 +42,7 @@ export function parseWadorsURL(url: string, domain: string): ParsedWadoRsUrlDeta
       type = Enums.RequestType.FRAME;
       break;
     default:
-      throw new Error('Invalid type of request');
+      throw new CustomError('Invalid type of request');
   }
 
   return {
@@ -68,11 +69,11 @@ export function getFrameDetailsFromMetadata(
   isMultiframe?: boolean;
 } {
   if (!seriesMetadata || !seriesMetadata.cod?.instances) {
-    throw new Error('Invalid seriesMetadata provided.');
+    throw new CustomError('Invalid seriesMetadata provided.');
   }
 
   if (frameIndex === null || frameIndex === undefined) {
-    throw new Error('Frame index is required.');
+    throw new CustomError('Frame index is required.');
   }
 
   const { domain, bucketName, bucketPrefix } = bucketDetails;

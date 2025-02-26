@@ -1,3 +1,5 @@
+import { CustomError } from '../../classes/customClasses';
+
 const fileStreaming = {
   maxFetchSize: 4 * 1024 * 1024 * 1024, // 4GB
   fetchedSize: 0,
@@ -14,7 +16,20 @@ const fileStreaming = {
     }
   },
 
-  async stream(args: { url: string; headers?: Record<string, string>; useSharedArrayBuffer?: boolean }): Promise<void> {
+  async stream(
+    args: {
+      url: string;
+      headers?: Record<string, string>;
+      useSharedArrayBuffer?: boolean;
+    },
+    callBack: (data: {
+      url: string;
+      position: number;
+      isAppending?: boolean;
+      fileArraybuffer?: Uint8Array;
+      chunk?: Uint8Array;
+    }) => void
+  ): Promise<Uint8Array | void> {
     const { url, headers, useSharedArrayBuffer } = args;
     const controller = new AbortController();
     let sharedArraybuffer: SharedArrayBuffer | null = null;
@@ -27,12 +42,12 @@ const fileStreaming = {
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new CustomError(`HTTP error! status: ${response.status}`);
       }
 
       const reader = response.body?.getReader();
       if (!reader) {
-        throw new Error('Failed to get reader from response body');
+        throw new CustomError('Failed to get reader from response body');
       }
 
       let result: ReadableStreamReadResult<Uint8Array>;
@@ -42,7 +57,7 @@ const fileStreaming = {
       completed = firstChunk.done;
 
       if (!firstChunk.value) {
-        throw new Error('The fetched chunks does not have value');
+        throw new CustomError('The fetched chunks does not have value');
       }
 
       if (!completed) {
@@ -50,7 +65,7 @@ const fileStreaming = {
 
         if (this.fetchedSize + position > this.maxFetchSize) {
           controller.abort();
-          throw new Error(`Maximum size(${this.maxFetchSize}) for fetching files reached`);
+          throw new CustomError(`Maximum size(${this.maxFetchSize}) for fetching files reached`);
         }
 
         this.fetchedSize += position;
@@ -62,7 +77,7 @@ const fileStreaming = {
           fileArraybuffer = new Uint8Array(totalLength);
         }
         fileArraybuffer.set(firstChunk.value);
-        postMessage({ url, position, fileArraybuffer });
+        callBack({ url, position, fileArraybuffer });
 
         while (!completed) {
           result = await reader.read();
@@ -78,23 +93,25 @@ const fileStreaming = {
             sharedArraybuffer = null;
             fileArraybuffer = null;
             controller.abort();
-            throw new Error(`Maximum size(${this.maxFetchSize}) for fetching files reached`);
+            throw new CustomError(`Maximum size(${this.maxFetchSize}) for fetching files reached`);
           }
 
           this.fetchedSize += chunk.length;
           fileArraybuffer.set(chunk, position);
           position += chunk.length;
 
-          postMessage({
+          callBack({
             isAppending: true,
             url,
             position: position,
-            chunk: !useSharedArrayBuffer ? chunk : null
+            chunk: !useSharedArrayBuffer ? chunk : undefined
           });
         }
       }
     } catch (error) {
-      const streamingError = new Error('fileStreaming.ts: ' + (error as Error).message || 'An error occured when streaming');
+      const streamingError = new CustomError(
+        'fileStreaming.ts: ' + (error as CustomError).message || 'An error occured when streaming'
+      );
       console.error(streamingError.message, error);
       throw streamingError;
     } finally {

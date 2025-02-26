@@ -1,4 +1,4 @@
-import { CodDicomWebServer } from '../../dist/main';
+import { CodDicomWebServer } from '../../dist/umd/main';
 import { testCases } from '../testDataDetails';
 import { createBenchmarkTestOptions, getAuthorizationHeader } from '../utils';
 
