@@ -249,11 +249,7 @@ class CodDicomWebServer {
               useSharedArrayBuffer
             })
             .then(() => {
-              if (this.fileManager.getPosition(fileUrl)) {
-                resolveFile();
-              } else {
-                rejectFile(new CustomError(`File - ${fileUrl} not found`));
-              }
+              resolveFile();
             })
             .catch((error) => {
               rejectFile(error);
@@ -278,6 +274,7 @@ class CodDicomWebServer {
               this.fileManager.set(fileUrl, { data: fileArraybuffer, position: fileArraybuffer.length });
 
               dataRetrievalManager.removeEventListener(FILE_PARTIAL_WORKER_NAME, 'message', handleSlice);
+              resolveFile();
             }
           };
 
@@ -289,13 +286,6 @@ class CodDicomWebServer {
               offsets: { startByte, endByte },
               headers,
               useSharedArrayBuffer
-            })
-            .then(() => {
-              if (this.fileManager.getPosition(fileUrl)) {
-                resolveFile();
-              } else {
-                rejectFile(new CustomError(`File - ${fileUrl} not found`));
-              }
             })
             .catch((error) => {
               rejectFile(error);
@@ -351,9 +341,13 @@ class CodDicomWebServer {
       tarPromise
         .then(() => {
           if (!requestResolved) {
-            const file = this.fileManager.get(fileUrl, isBytesOptimized ? undefined : offsets);
-            requestResolved = true;
-            resolveRequest(file?.buffer);
+            if (this.fileManager.getPosition(fileUrl)) {
+              const file = this.fileManager.get(fileUrl, isBytesOptimized ? undefined : offsets);
+              requestResolved = true;
+              resolveRequest(file?.buffer);
+            } else {
+              rejectRequest(new CustomError(`File - ${fileUrl} not found`));
+            }
           }
         })
         .catch((error) => {

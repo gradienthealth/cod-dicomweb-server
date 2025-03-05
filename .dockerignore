@@ -1,0 +1,15 @@
+# Ignore logs
+*.log
+# Ignore temporary files
+tmp/
+temp/
+# Ignore local environment files
+.env
+
+.git/
+.github/
+example/
+benchmarks/
+coverage/
+scripts/
+demo/cornerstone3D/

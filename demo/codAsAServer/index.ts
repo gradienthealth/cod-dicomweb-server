@@ -1,26 +1,19 @@
 // @ts-nocheck
 
-import { cache, Enums, imageLoader, RenderingEngine, metaData, registerImageLoader, type Types } from '@cornerstonejs/core';
-import { createImage, wadors } from '@cornerstonejs/dicom-image-loader';
+import { Enums, imageLoader, RenderingEngine, type Types } from '@cornerstonejs/core';
+import { wadors } from '@cornerstonejs/dicom-image-loader';
 import {
   PanTool,
-  PlanarRotateTool,
   StackScrollTool,
   ToolGroupManager,
   WindowLevelTool,
   ZoomTool,
   addTool,
-  Enums as csToolsEnums,
-  utilities as csToolsUtils
+  Enums as csToolsEnums
 } from '@cornerstonejs/tools';
-import {
-  addToggleButtonToToolbar,
-  createImageIdsAndCacheMetaData,
-  initDemo,
-  setTitleAndDescription
-} from '../../../../utils/demo/helpers';
+import { createImageIdsAndCacheMetaData, initDemo, setTitleAndDescription } from '../../../../utils/demo/helpers';
 
-import { CodDicomWebServer, FetchType } from '../../../../../../dist/esm';
+import { api } from 'dicomweb-client';
 
 // This is for debugging purposes
 console.warn('Click on index.ts to open source code for this example --------->');
@@ -28,7 +21,7 @@ console.warn('Click on index.ts to open source code for this example --------->'
 const { ViewportType } = Enums;
 
 // ======== Set up page ======== //
-setTitleAndDescription('Cod Dicomweb Server As A Client', 'Displays DICOM images fetched through the wadors proxy client.');
+setTitleAndDescription('Cod Dicomweb Server As A Server', 'Displays DICOM images fetched through the wadors proxy server.');
 
 const content = document.getElementById('content');
 const element = document.createElement('div');
@@ -44,56 +37,7 @@ const viewportId = 'CT_STACK';
 const renderingEngineId = 'myRenderingEngine';
 let renderingEngine;
 let toolGroup;
-let fetchType = FetchType.API_OPTIMIZED;
-let server: CodDicomWebServer;
-const prefix = 'cod';
 // ================================ //
-
-// ======== Set up fetchtype toggle ======= //
-const fetTypeSelect = document.createElement('select');
-fetTypeSelect.options.add(new Option('API Optimized', FetchType.API_OPTIMIZED));
-fetTypeSelect.options.add(new Option('Bytes Optimized', FetchType.BYTES_OPTIMIZED));
-fetTypeSelect.addEventListener('change', (e) => {
-  fetchType = +e.target.value;
-  render();
-});
-const toolbar = document.getElementById('demo-toolbar');
-toolbar?.appendChild(fetTypeSelect);
-// ======================================== //
-
-// ======== Create a image loader ======== //
-function loadImage(imageId: string, options) {
-  const uri = imageId.split(`${prefix}:`)[1];
-  const imageLoadObject: Types.IImageLoadObject = {
-    cancelFn: undefined,
-    promise: undefined
-  };
-
-  imageLoadObject.promise = new Promise((resolve, reject) => {
-    const pixelDataPromise = server.fetchCod(uri, {}, { fetchType });
-    const start = new Date().getTime();
-    const instance = metaData.get('instance', imageId);
-    const { TransferSyntaxUID } = instance;
-
-    pixelDataPromise
-      .then(async (pixelData) => {
-        const image = await createImage(imageId, new Uint8Array(pixelData), TransferSyntaxUID, { ...options, decodeLevel: 0 });
-
-        const end = new Date().getTime();
-
-        image.loadTimeInMS = end - start;
-        image.transferSyntaxUID = TransferSyntaxUID;
-
-        resolve(image);
-      })
-      .catch((error) => {
-        reject(error);
-      });
-  });
-
-  return imageLoadObject;
-}
-// ======================================= //
 
 /**
  * Runs the demo
@@ -150,8 +94,6 @@ async function render() {
     }
   };
 
-  cache.purgeCache();
-  renderingEngine.disableElement(viewportId);
   renderingEngine.enableElement(viewportInput);
   toolGroup.addViewport(viewportId, renderingEngineId);
 
@@ -159,23 +101,21 @@ async function render() {
   const viewport = renderingEngine.getViewport(viewportId) as Types.IStackViewport;
 
   const codImagesIds: string[] = [];
-  server = new CodDicomWebServer();
-  registerImageLoader(prefix, loadImage);
 
-  const wadoRsRoot = 'https://storage.googleapis.com/gradienthealth_cod_dicomweb_public_benchmark/v1/dicomweb';
+  const codDomain = 'http://localhost:5000';
+  const storageDomain = 'https://storage.googleapis.com/gradienthealth_cod_dicomweb_public_benchmark/v1/dicomweb';
+  const wadoRsRoot = codDomain + '/' + storageDomain;
+
+  const webClient = new api.DICOMwebClient({ url: wadoRsRoot });
   const client = {
     retrieveSeriesMetadata: async (studySearchOptions) => {
       const { studyInstanceUID, seriesInstanceUID } = studySearchOptions;
-      const wadorsUri = `${wadoRsRoot}/studies/${studySearchOptions.studyInstanceUID}/series/${studySearchOptions.seriesInstanceUID}/metadata`;
-
-      return await server.fetchCod(wadorsUri, {}, { fetchType }).then((instances) => {
+      return await webClient.retrieveSeriesMetadata(studySearchOptions).then((instances) => {
         // @ts-ignore
         instances.forEach((instance) => {
           const sopInstanceUID = instance['00080018'].Value[0];
-
           const imageId =
-            prefix +
-            ':' +
+            'wadors:' +
             wadoRsRoot +
             '/studies/' +
             studyInstanceUID +
