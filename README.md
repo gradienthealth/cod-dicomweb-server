@@ -90,6 +90,12 @@ Also update the submodule using the command
 yarn update:submodule:cornerstone3D
 ```
 
+### Cod As A Server
+
+```bash
+yarn demo:server
+```
+
 ### Cod As A Client
 
 ```bash
