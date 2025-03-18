@@ -1,6 +1,6 @@
 /*!
  * 
- * cod-dicomweb-server v1.3.3
+ * cod-dicomweb-server v1.3.4
  * git+https://github.com/gradienthealth/cod-dicomweb-server.git
  *
  *   Copyright (c) Adithyan Dinesh and project contributors.
