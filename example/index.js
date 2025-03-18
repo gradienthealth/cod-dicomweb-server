@@ -38,18 +38,18 @@ async function fetchFiles() {
 
     // The result is the pixeldata of the instance with mentioned sopUid.
     const multiInstanceWadoUrl =
-      'https://storage.googleapis.com/gradienthealth_cod_dicomweb_public_benchmark/v1/dicomweb/studies/1.2.826.0.1.3680043.8.498.25373200666081576206661715880670310913/series/1.2.826.0.1.3680043.8.498.17065113110917795618106606234460323040/instances/1.3.6.1.4.1.14519.5.2.1.7009.2403.109731662822930985185381565631/frames/1';
+      'https://storage.googleapis.com/gradienthealth_cod_dicomweb_public_benchmark/v1/dicomweb/studies/1.2.826.0.1.3680043.8.498.25373200666081576206661715880670310913/series/1.2.826.0.1.3680043.8.498.17065113110917795618106606234460323040/instances/1.2.826.0.1.3680043.8.498.12903905938468731988008479936141355889/frames/1';
 
     // The result is the pixeldata of only the mentioned frame.
     const multiframeWadorsUrl =
-      'https://storage.googleapis.com/gradienthealth_cod_dicomweb_public_benchmark/v1/dicomweb/studies/1.2.826.0.1.3680043.8.498.58515363163019840470617254439211433238/series/1.2.826.0.1.3680043.8.498.44789272984044865387552033656108944196/instances/1.3.6.1.4.1.5962.1.1.5017.1.2.1166546115.14677/frames/20';
+      'https://storage.googleapis.com/gradienthealth_cod_dicomweb_public_benchmark/v1/dicomweb/studies/1.2.826.0.1.3680043.8.498.58515363163019840470617254439211433238/series/1.2.826.0.1.3680043.8.498.44789272984044865387552033656108944196/instances/1.2.826.0.1.3680043.8.498.85959091954889636131137920671194527034/frames/20';
 
     // The result is the pixeldata of the dicom file in the direct url.
     const nonWadoRsUrl =
       'https://ohif-dicom-json-example.s3.amazonaws.com/LIDC-IDRI-0001/01-01-2000-30178/3000566.000000-03192/1-001.dcm';
 
     const instanceMetadataWadorsUrl =
-      'https://storage.googleapis.com/gradienthealth_cod_dicomweb_public_benchmark/v1/dicomweb/studies/1.2.826.0.1.3680043.8.498.58515363163019840470617254439211433238/series/1.2.826.0.1.3680043.8.498.44789272984044865387552033656108944196/instances/1.3.6.1.4.1.5962.1.1.5017.1.2.1166546115.14677/metadata';
+      'https://storage.googleapis.com/gradienthealth_cod_dicomweb_public_benchmark/v1/dicomweb/studies/1.2.826.0.1.3680043.8.498.58515363163019840470617254439211433238/series/1.2.826.0.1.3680043.8.498.44789272984044865387552033656108944196/instances/1.2.826.0.1.3680043.8.498.85959091954889636131137920671194527034/metadata';
 
     const seriesMetadataWadorsUrl =
       'https://storage.googleapis.com/gradienthealth_cod_dicomweb_public_benchmark/v1/dicomweb/studies/1.2.826.0.1.3680043.8.498.25373200666081576206661715880670310913/series/1.2.826.0.1.3680043.8.498.17065113110917795618106606234460323040/metadata';

@@ -127,7 +127,7 @@ describe('utils', () => {
     it('should throw error for empty seriesMetadata', () => {
       // @ts-ignore
       const seriesMetadata: JsonMetadata = {};
-      const sopInstanceUID = '<sopUid-1>';
+      const sopInstanceUID = '<deidSopUid>';
       const frameIndex = 1;
       const bucketDetails = {
         domain: 'https://example.com',
@@ -143,7 +143,7 @@ describe('utils', () => {
     it('should throw error for seriesMetadata without cod', () => {
       // @ts-ignore
       delete seriesMetadata.cod;
-      const sopInstanceUID = '<sopUid-1>';
+      const sopInstanceUID = '<deidSopUid>';
       const frameIndex = 1;
 
       expect(() => getFrameDetailsFromMetadata(seriesMetadata, sopInstanceUID, frameIndex, bucketDetails)).toThrow(
@@ -154,7 +154,7 @@ describe('utils', () => {
     it('should throw error for seriesMetadata without cod instances', () => {
       // @ts-ignore
       seriesMetadata.cod = {};
-      const sopInstanceUID = '<sopUid-1>';
+      const sopInstanceUID = '<deidSopUid>';
       const frameIndex = 1;
 
       expect(() => getFrameDetailsFromMetadata(seriesMetadata, sopInstanceUID, frameIndex, bucketDetails)).toThrow(
@@ -163,7 +163,7 @@ describe('utils', () => {
     });
 
     it('should throw error for null frameIndex', () => {
-      const sopInstanceUID = '<sopUid-1>';
+      const sopInstanceUID = '<deidSopUid>';
       const frameIndex = null;
 
       // @ts-ignore
@@ -192,7 +192,7 @@ describe('utils', () => {
     });
 
     it('should return multi frame details for valid metadata and SOP instance UID', () => {
-      const sopInstanceUID = '<sopUid-1>';
+      const sopInstanceUID = '<deidSopUid>';
       const frameIndex = 2;
 
       const expected = {
@@ -210,7 +210,7 @@ describe('utils', () => {
       seriesMetadata.cod.instances = Object.fromEntries(
         Object.entries(seriesMetadata.cod.instances).map(([key, value]) => [key, { ...value, offset_tables: {} }])
       );
-      const sopInstanceUID = '<sopUid-1>';
+      const sopInstanceUID = '<deidSopUid>';
       const frameIndex = 2;
 
       const expected = {
@@ -226,7 +226,7 @@ describe('utils', () => {
     it('should return frame details without thumbnailurl for valid metadata without thumbnail property', () => {
       // @ts-ignore
       delete seriesMetadata.thumbnail;
-      const sopInstanceUID = '<sopUid-1>';
+      const sopInstanceUID = '<deidSopUid>';
       const frameIndex = 1;
       const expected = {
         url: 'https://example.com/<bucketName>/<bucketPrefix>/studies/relative/url/to/the/file',

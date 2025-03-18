@@ -113,7 +113,7 @@ async function render() {
       return await webClient.retrieveSeriesMetadata(studySearchOptions).then((instances) => {
         // @ts-ignore
         instances.forEach((instance) => {
-          const sopInstanceUID = instance['00080018'].Value[0];
+          const sopInstanceUID = instance.DeidSopInstanceUID.Value[0];
           const imageId =
             'wadors:' +
             wadoRsRoot +

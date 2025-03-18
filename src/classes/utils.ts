@@ -84,9 +84,7 @@ export function getFrameDetailsFromMetadata(
     thumbnailUrl = `${domain}/${thumbnailGsUtilUri.split('gs://')[1]}`;
   }
 
-  const instanceFound = Object.values(seriesMetadata.cod.instances).find(
-    (instance) => instance.metadata['00080018']?.Value?.[0] === sopInstanceUID
-  );
+  const instanceFound = Object.entries(seriesMetadata.cod.instances).find(([key, instance]) => key === sopInstanceUID)?.[1];
 
   if (!instanceFound) {
     return { thumbnailUrl };

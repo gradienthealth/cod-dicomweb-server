@@ -119,7 +119,7 @@ describe('CodDicomWebServer', () => {
     it('should return instance metadata for wadors url for instance metadata', async () => {
       server.setOptions({ domain: 'https://example.com' });
       const wadorsUrl =
-        'https://example.com/<bucketName>/<bucketPrefixWith>/dicomweb/studies/<studyUid>/series/<seriesUid>/instances/<sopUid-1>/metadata';
+        'https://example.com/<bucketName>/<bucketPrefixWith>/dicomweb/studies/<studyUid>/series/<seriesUid>/instances/<deidSopUid>/metadata';
       const headers = { 'Content-Type': 'application/json' };
       const options = { useSharedArrayBuffer: true, fetchType: Enums.FetchType.API_OPTIMIZED };
 
@@ -280,7 +280,7 @@ describe('CodDicomWebServer', () => {
         cod: { instances: { '1.2.3.4': { metadata: { some: 'metadata', '00080018': { vr: 'UI', Value: ['<sopUid-1>'] } } } } }
       };
       const type = Enums.RequestType.INSTANCE_METADATA;
-      const sopInstanceUID = '<sopUid-1>';
+      const sopInstanceUID = '1.2.3.4';
       const result = server.parseMetadata(metadata, type, sopInstanceUID);
       expect(result).toEqual({ some: 'metadata', '00080018': { vr: 'UI', Value: ['<sopUid-1>'] } });
     });
