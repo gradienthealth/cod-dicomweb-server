@@ -119,7 +119,7 @@ describe('CodDicomWebServer', () => {
     it('should return instance metadata for wadors url for instance metadata', async () => {
       server.setOptions({ domain: 'https://example.com' });
       const wadorsUrl =
-        'https://example.com/<bucketName>/<bucketPrefixWith>/dicomweb/studies/<studyUid>/series/<seriesUid>/instances/<sopUid-1>/metadata';
+        'https://example.com/<bucketName>/<bucketPrefixWith>/dicomweb/studies/<studyUid>/series/<seriesUid>/instances/<deidSopUid>/metadata';
       const headers = { 'Content-Type': 'application/json' };
       const options = { useSharedArrayBuffer: true, fetchType: Enums.FetchType.API_OPTIMIZED };
 
@@ -157,7 +157,7 @@ describe('CodDicomWebServer', () => {
     it('should fetch frame data for wadors url for frame', async () => {
       server.setOptions({ domain: 'https://example.com' });
       const wadorsUrl =
-        'https://example.com/<bucketName>/<bucketPrefixWith>/dicomweb/studies/<studyUid>/series/<seriesUid>/instances/<sopUid-1>/frames/2';
+        'https://example.com/<bucketName>/<bucketPrefixWith>/dicomweb/studies/<studyUid>/series/<seriesUid>/instances/<deidSopUid>/frames/2';
       const headers = { 'Content-Type': 'application/octet-stream' };
       const options = { useSharedArrayBuffer: true, fetchType: Enums.FetchType.BYTES_OPTIMIZED };
       const expected = Uint8Array.from([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]).buffer;
@@ -280,7 +280,7 @@ describe('CodDicomWebServer', () => {
         cod: { instances: { '1.2.3.4': { metadata: { some: 'metadata', '00080018': { vr: 'UI', Value: ['<sopUid-1>'] } } } } }
       };
       const type = Enums.RequestType.INSTANCE_METADATA;
-      const sopInstanceUID = '<sopUid-1>';
+      const sopInstanceUID = '1.2.3.4';
       const result = server.parseMetadata(metadata, type, sopInstanceUID);
       expect(result).toEqual({ some: 'metadata', '00080018': { vr: 'UI', Value: ['<sopUid-1>'] } });
     });
