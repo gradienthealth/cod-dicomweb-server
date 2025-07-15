@@ -7,6 +7,7 @@ describe('CodDicomWebServer', () => {
   const getDataRetrievalManagerMock = jest.spyOn(require('../../dataRetrieval/dataRetrievalManager'), 'getDataRetrievalManager');
   const fileManagerMock = jest.spyOn(require('../../fileManager'), 'default');
   const metadataManagerMock = jest.spyOn(require('../../metadataManager'), 'default');
+  const getDirectoryHandleMock = jest.spyOn(require('../../fileAccessSystemUtils'), 'getDirectoryHandle').mockReturnThis();
 
   const workerAddEventListener = jest.fn();
   const fileManagerSet = jest.fn();
@@ -76,7 +77,7 @@ describe('CodDicomWebServer', () => {
   describe('getOptions', () => {
     it('should return the default options if not set', () => {
       const options = server.getOptions();
-      expect(options).toEqual({ maxWorkerFetchSize: Infinity, domain: url.DOMAIN });
+      expect(options).toEqual({ maxWorkerFetchSize: Infinity, domain: url.DOMAIN, enableLocalCache: false });
     });
   });
 
@@ -84,13 +85,17 @@ describe('CodDicomWebServer', () => {
     it('should set new options', () => {
       const newOptions = { maxWorkerFetchSize: 2000 };
       server.setOptions(newOptions);
-      expect(server.getOptions()).toEqual({ domain: url.DOMAIN, ...newOptions });
+      expect(server.getOptions()).toEqual({ domain: url.DOMAIN, enableLocalCache: false, ...newOptions });
     });
 
     it('should not set new options if the value is undefined', () => {
       const newOptions = { maxWorkerFetchSize: 2000, domain: undefined };
       server.setOptions(newOptions);
-      expect(server.getOptions()).toEqual({ domain: url.DOMAIN, maxWorkerFetchSize: newOptions.maxWorkerFetchSize });
+      expect(server.getOptions()).toEqual({
+        domain: url.DOMAIN,
+        maxWorkerFetchSize: newOptions.maxWorkerFetchSize,
+        enableLocalCache: false
+      });
     });
   });
 

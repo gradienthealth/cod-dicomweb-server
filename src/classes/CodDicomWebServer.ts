@@ -16,22 +16,25 @@ import type {
 import { getDataRetrievalManager } from '../dataRetrieval/dataRetrievalManager';
 import { CustomError, CustomMessageEvent } from './customClasses';
 import { CustomErrorEvent } from './customClasses';
+import { getDirectoryHandle } from '../fileAccessSystemUtils';
 
 class CodDicomWebServer {
   private filePromises: Record<string, Promise<void>> = {};
   private options: CodDicomWebServerOptions = {
     maxWorkerFetchSize: Infinity,
-    domain: constants.url.DOMAIN
+    domain: constants.url.DOMAIN,
+    enableLocalCache: false
   };
   private fileManager;
   private metadataManager;
   private seriesUidFileUrls: Record<string, string[]> = {};
 
-  constructor(args: { maxWorkerFetchSize?: number; domain?: string; disableWorker?: boolean } = {}) {
-    const { maxWorkerFetchSize, domain, disableWorker } = args;
+  constructor(args: { maxWorkerFetchSize?: number; domain?: string; disableWorker?: boolean; enableLocalCache?: boolean } = {}) {
+    const { maxWorkerFetchSize, domain, disableWorker, enableLocalCache } = args;
 
     this.options.maxWorkerFetchSize = maxWorkerFetchSize || this.options.maxWorkerFetchSize;
     this.options.domain = domain || this.options.domain;
+    this.options.enableLocalCache = !!enableLocalCache;
     const fileStreamingScriptName = constants.dataRetrieval.FILE_STREAMING_WORKER_NAME;
     const filePartialScriptName = constants.dataRetrieval.FILE_PARTIAL_WORKER_NAME;
     this.fileManager = new FileManager({ fileStreamingScriptName });
@@ -212,6 +215,7 @@ class CodDicomWebServer {
       });
     }
 
+    const directoryHandle = this.options.enableLocalCache && (await getDirectoryHandle());
     const { maxWorkerFetchSize } = this.getOptions();
     const dataRetrievalManager = getDataRetrievalManager();
     const { FILE_STREAMING_WORKER_NAME, FILE_PARTIAL_WORKER_NAME, THRESHOLD } = constants.dataRetrieval;
@@ -246,7 +250,8 @@ class CodDicomWebServer {
             .executeTask(FILE_STREAMING_WORKER_NAME, 'stream', {
               url: fileUrl,
               headers: headers,
-              useSharedArrayBuffer
+              useSharedArrayBuffer,
+              directoryHandle
             })
             .then(() => {
               resolveFile();
@@ -285,7 +290,7 @@ class CodDicomWebServer {
               url: bytesRemovedUrl,
               offsets: { startByte, endByte },
               headers,
-              useSharedArrayBuffer
+              directoryHandle
             })
             .catch((error) => {
               rejectFile(error);

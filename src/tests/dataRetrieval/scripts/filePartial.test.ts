@@ -21,6 +21,8 @@ describe('filePartial', () => {
     return URL_RESPONSES[url];
   }) as jest.Mock;
 
+  jest.spyOn(require('../../../fileAccessSystemUtils'), 'createPartialFileName').mockImplementation((url) => url);
+
   beforeEach(() => {
     jest.clearAllMocks();
   });

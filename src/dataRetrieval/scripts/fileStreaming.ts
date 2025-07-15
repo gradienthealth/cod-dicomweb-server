@@ -1,4 +1,5 @@
 import { CustomError } from '../../classes/customClasses';
+import { createStreamingFileName, readFile, writeFile } from '../../fileAccessSystemUtils';
 
 const fileStreaming = {
   maxFetchSize: 4 * 1024 * 1024 * 1024, // 4GB
@@ -21,6 +22,7 @@ const fileStreaming = {
       url: string;
       headers?: Record<string, string>;
       useSharedArrayBuffer?: boolean;
+      directoryHandle?: FileSystemDirectoryHandle;
     },
     callBack: (data: {
       url: string;
@@ -30,12 +32,21 @@ const fileStreaming = {
       chunk?: Uint8Array;
     }) => void
   ): Promise<Uint8Array | void> {
-    const { url, headers, useSharedArrayBuffer } = args;
+    const { url, headers, useSharedArrayBuffer, directoryHandle } = args;
     const controller = new AbortController();
     let sharedArraybuffer: SharedArrayBuffer | null = null;
     let fileArraybuffer: Uint8Array | null = null;
 
     try {
+      const fileName = createStreamingFileName(url);
+      if (directoryHandle) {
+        const file = await readFile(directoryHandle, fileName);
+        if (file) {
+          callBack({ url, position: file.byteLength, fileArraybuffer: new Uint8Array(file) });
+          return;
+        }
+      }
+
       const response = await fetch(url, {
         headers: { ...headers },
         signal: controller.signal
@@ -106,6 +117,10 @@ const fileStreaming = {
             position: position,
             chunk: !useSharedArrayBuffer ? chunk : undefined
           });
+        }
+
+        if (directoryHandle) {
+          writeFile(directoryHandle, fileName, fileArraybuffer.slice().buffer);
         }
       }
     } catch (error) {
