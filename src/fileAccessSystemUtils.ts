@@ -81,6 +81,23 @@ export async function writeFile(directoryHandle: FileSystemDirectoryHandle, name
   }
 }
 
+export function download(fileName: string, file: ArrayBuffer): boolean {
+  try {
+    const blob = new Blob([file], { type: 'application/x-tar' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    return true;
+  } catch (error) {
+    console.warn(`Error downloading file - ${fileName}: ` + error.message);
+    return false;
+  }
+}
+
 export async function clearPartialFiles(): Promise<void> {
   try {
     await directoryHandle.removeEntry(FILE_SYSTEM_ROUTES.Partial, { recursive: true });

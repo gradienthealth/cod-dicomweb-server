@@ -21,3 +21,9 @@ export enum DataRetrieveMode {
   WORKER,
   REQUEST
 }
+
+export enum URLType {
+  THUMBNAIL,
+  FILE,
+  OTHERS
+}

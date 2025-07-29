@@ -16,7 +16,7 @@ import type {
 import { getDataRetrievalManager } from '../dataRetrieval/dataRetrievalManager';
 import { CustomError, CustomMessageEvent } from './customClasses';
 import { CustomErrorEvent } from './customClasses';
-import { getDirectoryHandle } from '../fileAccessSystemUtils';
+import { download, getDirectoryHandle } from '../fileAccessSystemUtils';
 
 class CodDicomWebServer {
   private filePromises: Record<string, Promise<void>> = {};
@@ -27,7 +27,7 @@ class CodDicomWebServer {
   };
   private fileManager;
   private metadataManager;
-  private seriesUidFileUrls: Record<string, string[]> = {};
+  private seriesUidFileUrls: Record<string, Set<{ type: Enums.URLType; url: string }>> = {};
 
   constructor(args: { maxWorkerFetchSize?: number; domain?: string; disableWorker?: boolean; enableLocalCache?: boolean } = {}) {
     const { maxWorkerFetchSize, domain, disableWorker, enableLocalCache } = args;
@@ -60,11 +60,11 @@ class CodDicomWebServer {
     return this.options;
   };
 
-  public addFileUrl(seriesInstanceUID: string, url: string): void {
+  public addFileUrl(seriesInstanceUID: string, type: Enums.URLType, url: string): void {
     if (this.seriesUidFileUrls[seriesInstanceUID]) {
-      this.seriesUidFileUrls[seriesInstanceUID].push(url);
+      this.seriesUidFileUrls[seriesInstanceUID].add({ type, url });
     } else {
-      this.seriesUidFileUrls[seriesInstanceUID] = [url];
+      this.seriesUidFileUrls[seriesInstanceUID] = new Set([{ type, url }]);
     }
   }
 
@@ -117,7 +117,7 @@ class CodDicomWebServer {
               throw new CustomError(`Thumbnail not found for ${wadorsUrl}`);
             }
 
-            this.addFileUrl(seriesInstanceUID, thumbnailUrl);
+            this.addFileUrl(seriesInstanceUID, Enums.URLType.THUMBNAIL, thumbnailUrl);
 
             return this.fetchFile(thumbnailUrl, headers, {
               useSharedArrayBuffer
@@ -133,7 +133,7 @@ class CodDicomWebServer {
               urlWithBytes = `${fileUrl}?bytes=${startByte}-${endByte}`;
             }
 
-            this.addFileUrl(seriesInstanceUID, fileUrl);
+            this.addFileUrl(seriesInstanceUID, Enums.URLType.FILE, fileUrl);
 
             return this.fetchFile(urlWithBytes, headers, {
               offsets: { startByte, endByte },
@@ -179,7 +179,7 @@ class CodDicomWebServer {
                   const seriesInstanceUID = dataSet.string('0020000e');
 
                   if (seriesInstanceUID) {
-                    this.addFileUrl(seriesInstanceUID, wadorsUrl);
+                    this.addFileUrl(seriesInstanceUID, Enums.URLType.OTHERS, wadorsUrl);
                   }
                 } catch (error) {
                   console.warn('CodDicomWebServer.ts: There is some issue parsing the file.', error);
@@ -364,11 +364,23 @@ class CodDicomWebServer {
     });
   }
 
+  public downloadSeriesFile(seriesInstanceUID: string): boolean {
+    const seriesFileURL = Array.from(this.seriesUidFileUrls[seriesInstanceUID]).find(
+      ({ url, type }) => type === Enums.URLType.FILE && url.endsWith('.tar')
+    )?.url;
+
+    if (seriesFileURL) {
+      const seriesArrayBuffer = this.fileManager.get(seriesFileURL);
+      return download(seriesFileURL.split('/').at(-1), seriesArrayBuffer);
+    }
+    return false;
+  }
+
   public delete(seriesInstanceUID: string): void {
     const fileUrls = this.seriesUidFileUrls[seriesInstanceUID];
     if (fileUrls) {
-      fileUrls.forEach((fileUrl) => {
-        this.fileManager.remove(fileUrl);
+      fileUrls.forEach(({ url }) => {
+        this.fileManager.remove(url);
       });
     }
     delete this.seriesUidFileUrls[seriesInstanceUID];
@@ -376,8 +388,8 @@ class CodDicomWebServer {
 
   public deleteAll(): void {
     Object.values(this.seriesUidFileUrls).forEach((fileUrls) => {
-      fileUrls.forEach((fileUrl) => {
-        this.fileManager.remove(fileUrl);
+      fileUrls.forEach(({ url }) => {
+        this.fileManager.remove(url);
       });
     });
     this.seriesUidFileUrls = {};
