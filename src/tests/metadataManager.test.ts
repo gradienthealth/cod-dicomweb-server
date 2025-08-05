@@ -88,7 +88,7 @@ describe('getMetadata', () => {
 
     const expected = await URL_RESPONSES.working_case.json();
     // @ts-ignore
-    metadataManager.addDeidMetadata(expected);
+    metadataManager.addDeidMetadata(expected, 'working_case');
     await expect(metadataManager.getMetadata(params, headers)).resolves.toEqual(expected);
   });
 

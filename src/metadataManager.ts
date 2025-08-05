@@ -7,19 +7,20 @@ class MetadataManager {
 
   constructor() {}
 
-  public addDeidMetadata(jsonMetadata: JsonMetadata): void {
-    const { deid_study_uid, deid_series_uid, cod } = jsonMetadata;
+  public addDeidMetadata(jsonMetadata: JsonMetadata, url: string): void {
+    const { cod } = jsonMetadata;
+    const [studyUID, _, seriesUID] = url.match(/studies\/(.*?)\/metadata/)?.[1].split('/') || [];
 
-    if (!cod || !deid_study_uid || !deid_series_uid) {
-      console.warn('Missing required metadata properties: cod, deid_study_uid, or deid_series_uid');
+    if (!cod || !studyUID || !seriesUID) {
+      console.warn('Missing required metadata properties: cod, studyUID, or seriesUID');
       return;
     }
 
-    for (const deid_sop_uid in cod.instances) {
-      const instance = cod.instances[deid_sop_uid];
-      instance.metadata.DeidStudyInstanceUID = { Value: [deid_study_uid] };
-      instance.metadata.DeidSeriesInstanceUID = { Value: [deid_series_uid] };
-      instance.metadata.DeidSopInstanceUID = { Value: [deid_sop_uid] };
+    for (const sopUID in cod.instances) {
+      const instance = cod.instances[sopUID];
+      instance.metadata.DeidStudyInstanceUID = { Value: [studyUID] };
+      instance.metadata.DeidSeriesInstanceUID = { Value: [seriesUID] };
+      instance.metadata.DeidSopInstanceUID = { Value: [sopUID] };
     }
   }
 
@@ -48,7 +49,7 @@ class MetadataManager {
           return response.json();
         })
         .then((data) => {
-          this.addDeidMetadata(data);
+          this.addDeidMetadata(data, url);
           return data;
         });
 
