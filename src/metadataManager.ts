@@ -1,5 +1,6 @@
 import { CustomError } from './classes/customClasses';
 import { createMetadataJsonUrl } from './classes/utils';
+import { createMetadataFileName, getDirectoryHandle, readFile, writeFile } from './fileAccessSystemUtils';
 import type { JsonMetadata, MetadataUrlCreationParams } from './types';
 
 class MetadataManager {
@@ -40,6 +41,13 @@ class MetadataManager {
       return await cachedMetadata;
     }
 
+    const directoryHandle = await getDirectoryHandle();
+    const fileName = createMetadataFileName(url);
+    const locallyCachedMetadata = (await readFile(directoryHandle, fileName, { isJson: true })) as JsonMetadata;
+    if (locallyCachedMetadata) {
+      return locallyCachedMetadata;
+    }
+
     try {
       this.metadataPromises[url] = fetch(url, { headers })
         .then((response) => {
@@ -50,7 +58,7 @@ class MetadataManager {
         })
         .then((data) => {
           this.addDeidMetadata(data, url);
-          return data;
+          return writeFile(directoryHandle, fileName, data, true).then(() => data);
         });
 
       return await this.metadataPromises[url];

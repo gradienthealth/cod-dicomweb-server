@@ -40,7 +40,7 @@ const fileStreaming = {
     try {
       const fileName = createStreamingFileName(url);
       if (directoryHandle) {
-        const file = await readFile(directoryHandle, fileName);
+        const file = (await readFile(directoryHandle, fileName, { isJson: false })) as ArrayBuffer;
         if (file) {
           callBack({ url, position: file.byteLength, fileArraybuffer: new Uint8Array(file) });
           return;

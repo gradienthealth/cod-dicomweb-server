@@ -98,6 +98,8 @@ describe('fileStreaming', () => {
       return URL_RESPONSES[url] || Promise.reject(new CustomError('Error Fetching'));
     }) as jest.Mock;
 
+    jest.spyOn(require('../../../fileAccessSystemUtils'), 'createStreamingFileName').mockImplementation((url) => url);
+
     afterEach(() => {
       jest.clearAllMocks();
       fileStreaming.fetchedSize = initialFetchedSize;

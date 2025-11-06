@@ -38,6 +38,8 @@ describe('getMetadata', () => {
 
   global.fetch = jest.fn((url: string) => Promise.resolve(URL_RESPONSES[url])) as jest.Mock;
   const createMetadataJsonUrlMock = jest.spyOn(require('../classes/utils'), 'createMetadataJsonUrl');
+  jest.spyOn(require('../fileAccessSystemUtils'), 'createMetadataFileName').mockImplementation((url) => url);
+  jest.spyOn(require('../fileAccessSystemUtils'), 'readFile').mockReturnValue(undefined);
 
   beforeEach(() => {
     jest.clearAllMocks();
