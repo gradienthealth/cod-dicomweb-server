@@ -153,9 +153,6 @@ class CodDicomWebServer {
                 let { dataOffset, length } = pixelDataElement;
                 if (pixelDataElement.hadUndefinedLength && pixelDataElement.fragments) {
                   ({ position: dataOffset, length } = pixelDataElement.fragments[0]);
-                } else {
-                  // Adding 8 bytes for 4 bytes tag + 4 bytes length for uncomppressed pixelData
-                  dataOffset += 8;
                 }
 
                 return arraybuffer.slice(dataOffset, dataOffset + length);
