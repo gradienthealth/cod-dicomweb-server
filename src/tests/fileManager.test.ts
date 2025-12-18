@@ -3,11 +3,8 @@ import FileManager from '../fileManager';
 describe('FileManager', () => {
   let fileManager: FileManager;
 
-  const getDataRetrievalManagerMock = jest.spyOn(require('../dataRetrieval/dataRetrievalManager'), 'getDataRetrievalManager');
-  getDataRetrievalManagerMock.mockImplementation(() => ({ executeTask: jest.fn() }));
-
   beforeEach(() => {
-    fileManager = new FileManager({ fileStreamingScriptName: 'test-worker' });
+    fileManager = new FileManager();
     jest.clearAllMocks();
   });
 
@@ -117,7 +114,7 @@ describe('FileManager', () => {
     const file3 = { data: new Uint8Array([4, 5, 6]), position: 3 };
     fileManager.set(url3, file3);
 
-    expect(fileManager.getTotalSize()).toBe(6);
+    expect(fileManager.getTotalSize()).toBe(9);
   });
 
   it('should remove file', () => {
@@ -127,7 +124,6 @@ describe('FileManager', () => {
     fileManager.remove(url);
 
     expect(fileManager.get(url)).toBeNull();
-    expect(getDataRetrievalManagerMock).toHaveBeenCalledTimes(1);
   });
 
   it('should remove file but wont call getWebWorkerManager', () => {
@@ -137,7 +133,6 @@ describe('FileManager', () => {
     fileManager.remove(url);
 
     expect(fileManager.get(url)).toBeNull();
-    expect(getDataRetrievalManagerMock).not.toHaveBeenCalled();
   });
 
   it('should purge all files', () => {
@@ -151,6 +146,6 @@ describe('FileManager', () => {
 
     expect(fileManager.get(url1)).toBeNull();
     expect(fileManager.get(url2)).toBeNull();
-    expect(getDataRetrievalManagerMock).toHaveBeenCalledTimes(1);
+    expect(fileManager.getTotalSize()).toEqual(0);
   });
 });

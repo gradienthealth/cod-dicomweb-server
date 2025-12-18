@@ -17,5 +17,6 @@ export class CustomMessageEvent extends MessageEvent<{
   chunk?: Uint8Array;
   isAppending?: boolean;
   fileArraybuffer?: Uint8Array;
+  totalLength: number;
   offsets?: { startByte: number; endByte: number };
 }> {}

@@ -38,59 +38,8 @@ const URL_RESPONSES = {
 };
 
 describe('fileStreaming', () => {
-  let initialFetchedSize: number, initialMaxFetchSize: number;
-
-  beforeAll(() => {
-    ({ fetchedSize: initialFetchedSize, maxFetchSize: initialMaxFetchSize } = fileStreaming);
-  });
-
   beforeEach(() => {
     jest.clearAllMocks();
-  });
-
-  describe('setMaxFetchSize', () => {
-    afterEach(() => {
-      fileStreaming.setMaxFetchSize(initialMaxFetchSize);
-    });
-
-    it('should not set the maxFetchSize if is less than or equal to 0', async () => {
-      const newSize = -10;
-      fileStreaming.setMaxFetchSize(newSize);
-      expect(fileStreaming.maxFetchSize).toBe(initialMaxFetchSize);
-    });
-
-    it('should set the maxFetchSize if is greater than 0', async () => {
-      const newSize = 100;
-      fileStreaming.setMaxFetchSize(newSize);
-      expect(fileStreaming.maxFetchSize).toBe(newSize);
-    });
-  });
-
-  describe('decreaseFetchedSize', () => {
-    afterEach(() => {
-      fileStreaming.fetchedSize = initialFetchedSize;
-    });
-
-    it('should decrease the fetchedSize if the decreaseSize is greater than 0', async () => {
-      fileStreaming.fetchedSize = 80;
-      const decreaseSize = 50;
-      fileStreaming.decreaseFetchedSize(decreaseSize);
-      expect(fileStreaming.fetchedSize).toBe(30);
-    });
-
-    it('should not decrease the fetchedSize if the decreaseSize is less than or equal to 0', async () => {
-      fileStreaming.fetchedSize = 80;
-      const decreaseSize = -5;
-      fileStreaming.decreaseFetchedSize(decreaseSize);
-      expect(fileStreaming.fetchedSize).toBe(80);
-    });
-
-    it('should not decrease the fetchedSize if the decreaseSize greater than the fetchedSize', async () => {
-      fileStreaming.fetchedSize = 30;
-      const decreaseSize = 50;
-      fileStreaming.decreaseFetchedSize(decreaseSize);
-      expect(fileStreaming.fetchedSize).toBe(30);
-    });
   });
 
   describe('stream', () => {
@@ -102,8 +51,6 @@ describe('fileStreaming', () => {
 
     afterEach(() => {
       jest.clearAllMocks();
-      fileStreaming.fetchedSize = initialFetchedSize;
-      fileStreaming.setMaxFetchSize(initialMaxFetchSize);
     });
 
     it('stream with invalid headers', async () => {
@@ -145,33 +92,6 @@ describe('fileStreaming', () => {
       );
     });
 
-    it('should throw an error if maxFetchSize is exceeded - case1', async () => {
-      const url = 'exceed_max_size_1';
-      const headers = { 'Content-Type': 'application/octet-stream' };
-      fileStreaming.setMaxFetchSize(3);
-      const callback = jest.fn();
-      await expect(fileStreaming.stream({ url, headers }, callback)).rejects.toThrow(
-        'fileStreaming.ts: Maximum size(3) for fetching files reached'
-      );
-    });
-
-    it('should throw an error if maxFetchSize is exceeded - case2', async () => {
-      const url = 'exceed_max_size_2';
-      const headers = { 'Content-Type': 'application/octet-stream' };
-      fileStreaming.setMaxFetchSize(5);
-      const callback = jest.fn();
-      await expect(fileStreaming.stream({ url, headers }, callback)).rejects.toThrow(
-        'fileStreaming.ts: Maximum size(5) for fetching files reached'
-      );
-
-      expect(global.fetch).toHaveBeenCalledWith(url, { headers, signal: expect.any(AbortSignal) });
-      expect(callback).toHaveBeenCalledWith({
-        url,
-        position: 4,
-        fileArraybuffer: Uint8Array.from([1, 2, 3, 4, 0, 0, 0, 0, 0, 0])
-      });
-    });
-
     it('should callback the file', async () => {
       const url = 'working_case_1';
       const headers = { 'Content-Type': 'application/octet-stream' };
@@ -185,22 +105,23 @@ describe('fileStreaming', () => {
         position: 4,
         // To the listener of the postMessage, the first four of fileArraybuffer will have value,
         // the rest will be 0 because listener params are cloned from the postmessage inputs.
-        fileArraybuffer: Uint8Array.from([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+        fileArraybuffer: Uint8Array.from([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]),
+        totalLength: 10
       });
       expect(callback).toHaveBeenCalledWith({
         isAppending: true,
         url,
         position: 7,
-        chunk: Uint8Array.from([5, 6, 7])
+        chunk: Uint8Array.from([5, 6, 7]),
+        totalLength: 10
       });
       expect(callback).toHaveBeenCalledWith({
         isAppending: true,
         url,
         position: 10,
-        chunk: Uint8Array.from([8, 9, 10])
+        chunk: Uint8Array.from([8, 9, 10]),
+        totalLength: 10
       });
-
-      expect(fileStreaming.fetchedSize).toBe(10);
     });
 
     it('should stream with useSharedArrayBuffer', async () => {
@@ -214,21 +135,23 @@ describe('fileStreaming', () => {
       expect(callback).toHaveBeenCalledWith({
         url,
         position: 4,
-        fileArraybuffer: Uint8Array.from([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+        fileArraybuffer: Uint8Array.from([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]),
+        totalLength: 10
       });
       expect(callback).toHaveBeenCalledWith({
         isAppending: true,
         url,
         position: 7,
-        chunk: undefined
+        chunk: undefined,
+        totalLength: 10
       });
       expect(callback).toHaveBeenCalledWith({
         isAppending: true,
         url,
         position: 10,
-        chunk: undefined
+        chunk: undefined,
+        totalLength: 10
       });
-      expect(fileStreaming.fetchedSize).toBe(10);
     });
   });
 });

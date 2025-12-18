@@ -1,6 +1,6 @@
 type CodDicomWebServerOptions = {
   [key: string]: number | string | boolean;
-  maxWorkerFetchSize: number;
+  maxCacheSize: number;
   domain: string;
   enableLocalCache: boolean;
 };
