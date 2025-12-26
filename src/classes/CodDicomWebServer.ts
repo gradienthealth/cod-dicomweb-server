@@ -21,7 +21,7 @@ import { download, getDirectoryHandle } from '../fileAccessSystemUtils';
 class CodDicomWebServer {
   private filePromises: Record<string, Promise<void>> = {};
   private options: CodDicomWebServerOptions = {
-    maxWorkerFetchSize: Infinity,
+    maxCacheSize: 4 * 1024 * 1024 * 1024, // 4GB
     domain: constants.url.DOMAIN,
     enableLocalCache: false
   };
@@ -29,15 +29,15 @@ class CodDicomWebServer {
   private metadataManager;
   private seriesUidFileUrls: Record<string, Set<{ type: Enums.URLType; url: string }>> = {};
 
-  constructor(args: { maxWorkerFetchSize?: number; domain?: string; disableWorker?: boolean; enableLocalCache?: boolean } = {}) {
-    const { maxWorkerFetchSize, domain, disableWorker, enableLocalCache } = args;
+  constructor(args: { maxCacheSize?: number; domain?: string; disableWorker?: boolean; enableLocalCache?: boolean } = {}) {
+    const { maxCacheSize, domain, disableWorker, enableLocalCache } = args;
 
-    this.options.maxWorkerFetchSize = maxWorkerFetchSize || this.options.maxWorkerFetchSize;
+    this.options.maxCacheSize = maxCacheSize || this.options.maxCacheSize;
     this.options.domain = domain || this.options.domain;
     this.options.enableLocalCache = !!enableLocalCache;
     const fileStreamingScriptName = constants.dataRetrieval.FILE_STREAMING_WORKER_NAME;
     const filePartialScriptName = constants.dataRetrieval.FILE_PARTIAL_WORKER_NAME;
-    this.fileManager = new FileManager({ fileStreamingScriptName });
+    this.fileManager = new FileManager();
     this.metadataManager = new MetadataManager();
 
     if (disableWorker) {
@@ -45,7 +45,7 @@ class CodDicomWebServer {
       dataRetrievalManager.setDataRetrieverMode(Enums.DataRetrieveMode.REQUEST);
     }
 
-    register({ fileStreamingScriptName, filePartialScriptName }, this.options.maxWorkerFetchSize);
+    register({ fileStreamingScriptName, filePartialScriptName });
   }
 
   public setOptions = (newOptions: Partial<CodDicomWebServerOptions>): void => {
@@ -213,17 +213,12 @@ class CodDicomWebServer {
     }
 
     const directoryHandle = this.options.enableLocalCache && (await getDirectoryHandle());
-    const { maxWorkerFetchSize } = this.getOptions();
     const dataRetrievalManager = getDataRetrievalManager();
-    const { FILE_STREAMING_WORKER_NAME, FILE_PARTIAL_WORKER_NAME, THRESHOLD } = constants.dataRetrieval;
+    const { FILE_STREAMING_WORKER_NAME, FILE_PARTIAL_WORKER_NAME } = constants.dataRetrieval;
     let tarPromise: Promise<void>;
 
     if (!this.filePromises[fileUrl]) {
       tarPromise = new Promise<void>((resolveFile, rejectFile) => {
-        if (this.fileManager.getTotalSize() + THRESHOLD > maxWorkerFetchSize) {
-          throw new CustomError(`CodDicomWebServer.ts: Maximum size(${maxWorkerFetchSize}) for fetching files reached`);
-        }
-
         const FetchTypeEnum = constants.Enums.FetchType;
 
         if (fetchType === FetchTypeEnum.API_OPTIMIZED) {
@@ -315,13 +310,20 @@ class CodDicomWebServer {
           throw evt.error;
         }
 
-        const { url, position, chunk, isAppending } = evt.data;
+        const { url, position, chunk, totalLength, isAppending } = evt.data;
 
         if (isAppending) {
           if (chunk) {
             this.fileManager.append(url, chunk, position);
           } else {
             this.fileManager.setPosition(url, position);
+          }
+        } else {
+          // The full empty file including with first chunk have been stored to fileManager
+          // by the worker listener in the file promise.
+          // So, we check whether the cache exceeded the limit here.
+          if (this.fileManager.getTotalSize() > this.options.maxCacheSize) {
+            this.fileManager.decacheNecessaryBytes(url, totalLength);
           }
         }
 

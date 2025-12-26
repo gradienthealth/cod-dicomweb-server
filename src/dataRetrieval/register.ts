@@ -3,13 +3,7 @@ import { getDataRetrievalManager } from './dataRetrievalManager';
 import filePartial from './scripts/filePartial';
 import fileStreaming from './scripts/fileStreaming';
 
-export function register(
-  workerNames: {
-    fileStreamingScriptName: string;
-    filePartialScriptName: string;
-  },
-  maxFetchSize: number
-): void {
+export function register(workerNames: { fileStreamingScriptName: string; filePartialScriptName: string }): void {
   const { fileStreamingScriptName, filePartialScriptName } = workerNames;
   const dataRetrievalManager = getDataRetrievalManager();
 
@@ -33,6 +27,4 @@ export function register(
 
     dataRetrievalManager.register(filePartialScriptName, partialWorkerFn);
   }
-  
-  dataRetrievalManager.executeTask(fileStreamingScriptName, 'setMaxFetchSize', maxFetchSize);
 }

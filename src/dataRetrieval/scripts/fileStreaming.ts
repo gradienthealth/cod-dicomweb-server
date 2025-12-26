@@ -2,21 +2,6 @@ import { CustomError } from '../../classes/customClasses';
 import { createStreamingFileName, readFile, writeFile } from '../../fileAccessSystemUtils';
 
 const fileStreaming = {
-  maxFetchSize: 4 * 1024 * 1024 * 1024, // 4GB
-  fetchedSize: 0,
-
-  setMaxFetchSize(size: number): void {
-    if (size > 0) {
-      this.maxFetchSize = size;
-    }
-  },
-
-  decreaseFetchedSize(size: number): void {
-    if (size > 0 && size <= this.fetchedSize) {
-      this.fetchedSize -= size;
-    }
-  },
-
   async stream(
     args: {
       url: string;
@@ -30,6 +15,7 @@ const fileStreaming = {
       isAppending?: boolean;
       fileArraybuffer?: Uint8Array;
       chunk?: Uint8Array;
+      totalLength: number;
     }) => void
   ): Promise<Uint8Array | void> {
     const { url, headers, useSharedArrayBuffer, directoryHandle } = args;
@@ -42,7 +28,8 @@ const fileStreaming = {
       if (directoryHandle) {
         const file = (await readFile(directoryHandle, fileName, { isJson: false })) as ArrayBuffer;
         if (file) {
-          callBack({ url, position: file.byteLength, fileArraybuffer: new Uint8Array(file) });
+          const totalLength = file.byteLength;
+          callBack({ url, position: totalLength, fileArraybuffer: new Uint8Array(file), totalLength });
           return;
         }
       }
@@ -74,13 +61,6 @@ const fileStreaming = {
       if (!completed) {
         let position = firstChunk.value.length;
 
-        if (this.fetchedSize + position > this.maxFetchSize) {
-          controller.abort();
-          throw new CustomError(`Maximum size(${this.maxFetchSize}) for fetching files reached`);
-        }
-
-        this.fetchedSize += position;
-
         if (useSharedArrayBuffer) {
           sharedArraybuffer = new SharedArrayBuffer(totalLength);
           fileArraybuffer = new Uint8Array(sharedArraybuffer);
@@ -88,7 +68,7 @@ const fileStreaming = {
           fileArraybuffer = new Uint8Array(totalLength);
         }
         fileArraybuffer.set(firstChunk.value);
-        callBack({ url, position, fileArraybuffer });
+        callBack({ url, position, fileArraybuffer, totalLength });
 
         while (!completed) {
           result = await reader.read();
@@ -100,14 +80,6 @@ const fileStreaming = {
 
           const chunk = result.value;
 
-          if (this.fetchedSize + chunk.length > this.maxFetchSize) {
-            sharedArraybuffer = null;
-            fileArraybuffer = null;
-            controller.abort();
-            throw new CustomError(`Maximum size(${this.maxFetchSize}) for fetching files reached`);
-          }
-
-          this.fetchedSize += chunk.length;
           fileArraybuffer.set(chunk, position);
           position += chunk.length;
 
@@ -115,7 +87,8 @@ const fileStreaming = {
             isAppending: true,
             url,
             position: position,
-            chunk: !useSharedArrayBuffer ? chunk : undefined
+            chunk: !useSharedArrayBuffer ? chunk : undefined,
+            totalLength
           });
         }
 

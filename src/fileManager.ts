@@ -1,16 +1,10 @@
-import type { FileManagerOptions } from './types';
-import { getDataRetrievalManager } from './dataRetrieval/dataRetrievalManager';
+import type { FileManagerFile } from './types';
 
 class FileManager {
-  private files: Record<string, { data: Uint8Array; position: number }> = {};
-  private fileStreamingScriptName: string;
+  private files: Record<string, FileManagerFile> = {};
 
-  constructor({ fileStreamingScriptName }: FileManagerOptions) {
-    this.fileStreamingScriptName = fileStreamingScriptName;
-  }
-
-  set(url: string, file: { data: Uint8Array; position: number }): void {
-    this.files[url] = file;
+  set(url: string, file: Omit<FileManagerFile, 'lastModified'>): void {
+    this.files[url] = { ...file, lastModified: Date.now() };
   }
 
   get(url: string, offsets?: { startByte: number; endByte: number }): Uint8Array | null {
@@ -24,6 +18,7 @@ class FileManager {
   setPosition(url: string, position: number): void {
     if (this.files[url]) {
       this.files[url].position = position;
+      this.files[url].lastModified = Date.now();
     }
   }
 
@@ -39,29 +34,46 @@ class FileManager {
   }
 
   getTotalSize(): number {
-    return Object.entries(this.files).reduce((total, [url, { position }]) => {
-      return url.includes('?bytes=') ? total : total + position;
+    return Object.values(this.files).reduce((total, { data }) => {
+      return total + data.byteLength;
     }, 0);
   }
 
   remove(url: string): void {
-    const removedSize = this.getPosition(url);
-    delete this.files[url];
-
-    if (url.includes('?bytes=')) {
-      return;
+    try {
+      delete this.files[url];
+      console.log(`Removed ${url} from CodDicomwebServer cache`);
+    } catch (error) {
+      console.warn(`Error removing ${url} from CodDicomwebServer cache:`, error);
     }
-
-    const retrievalManager = getDataRetrievalManager();
-    retrievalManager.executeTask(this.fileStreamingScriptName, 'decreaseFetchedSize', removedSize);
   }
 
   purge(): void {
+    const fileURLs = Object.keys(this.files);
     const totalSize = this.getTotalSize();
-    this.files = {};
+    fileURLs.forEach((url) => this.remove(url));
 
-    const retrievalManager = getDataRetrievalManager();
-    retrievalManager.executeTask(this.fileStreamingScriptName, 'decreaseFetchedSize', totalSize);
+    console.log(`Purged ${totalSize - this.getTotalSize()} bytes from CodDicomwebServer cache`);
+  }
+
+  decacheNecessaryBytes(url: string, bytesNeeded: number): number {
+    const totalSize = this.getTotalSize();
+    const filesToDelete: string[] = [];
+    let collectiveSize = 0;
+
+    Object.entries(this.files)
+      .sort(([, a], [, b]) => a.lastModified - b.lastModified)
+      .forEach(([key, file]) => {
+        if (collectiveSize < bytesNeeded && key !== url) {
+          filesToDelete.push(key);
+          collectiveSize += file.data.byteLength;
+        }
+      });
+
+    filesToDelete.forEach((key) => this.remove(key));
+
+    console.log(`Decached ${totalSize - this.getTotalSize()} bytes`);
+    return collectiveSize;
   }
 }
 

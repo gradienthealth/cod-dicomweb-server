@@ -1,5 +1,5 @@
 export * from './codDicomWebServerOptions';
-export * from './fileManagerOptions';
+export * from './fileManagerFile';
 export * from './metadata';
 export * from './metadataUrlCreationParams';
 export * from './parsedWadoRsUrlDetails';

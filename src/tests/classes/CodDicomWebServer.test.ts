@@ -7,7 +7,6 @@ describe('CodDicomWebServer', () => {
   const getDataRetrievalManagerMock = jest.spyOn(require('../../dataRetrieval/dataRetrievalManager'), 'getDataRetrievalManager');
   const fileManagerMock = jest.spyOn(require('../../fileManager'), 'default');
   const metadataManagerMock = jest.spyOn(require('../../metadataManager'), 'default');
-  const getDirectoryHandleMock = jest.spyOn(require('../../fileAccessSystemUtils'), 'getDirectoryHandle').mockReturnThis();
 
   const workerAddEventListener = jest.fn();
   const fileManagerSet = jest.fn();
@@ -68,7 +67,7 @@ describe('CodDicomWebServer', () => {
     });
 
     it('should create a new instance with custom options', () => {
-      const options = { maxWorkerFetchSize: 10000, domain: 'example.com' };
+      const options = { maxCacheSize: 10000, domain: 'example.com' };
       const serverWithCustomOptions = new CodDicomWebServer(options);
       expect(serverWithCustomOptions).toBeInstanceOf(CodDicomWebServer);
     });
@@ -77,23 +76,23 @@ describe('CodDicomWebServer', () => {
   describe('getOptions', () => {
     it('should return the default options if not set', () => {
       const options = server.getOptions();
-      expect(options).toEqual({ maxWorkerFetchSize: Infinity, domain: url.DOMAIN, enableLocalCache: false });
+      expect(options).toEqual({ maxCacheSize: Infinity, domain: url.DOMAIN, enableLocalCache: false });
     });
   });
 
   describe('setOptions', () => {
     it('should set new options', () => {
-      const newOptions = { maxWorkerFetchSize: 2000 };
+      const newOptions = { maxCacheSize: 2000 };
       server.setOptions(newOptions);
       expect(server.getOptions()).toEqual({ domain: url.DOMAIN, enableLocalCache: false, ...newOptions });
     });
 
     it('should not set new options if the value is undefined', () => {
-      const newOptions = { maxWorkerFetchSize: 2000, domain: undefined };
+      const newOptions = { maxCacheSize: 2000, domain: undefined };
       server.setOptions(newOptions);
       expect(server.getOptions()).toEqual({
         domain: url.DOMAIN,
-        maxWorkerFetchSize: newOptions.maxWorkerFetchSize,
+        maxCacheSize: newOptions.maxCacheSize,
         enableLocalCache: false
       });
     });
@@ -202,7 +201,7 @@ describe('CodDicomWebServer', () => {
       );
     });
 
-    it('should throw an error if the maxFetchSize has been exceeded', async () => {
+    it('should handle even if there is a cache limit', async () => {
       const fileUrl = 'fileUrl';
       const headers = { 'Content-Type': 'application/octet-stream' };
       const options = {
@@ -210,13 +209,11 @@ describe('CodDicomWebServer', () => {
         useSharedArrayBuffer: true,
         fetchType: Enums.FetchType.BYTES_OPTIMIZED
       };
-      server.setOptions({ maxWorkerFetchSize: 20 });
+      server.setOptions({ maxCacheSize: 20 });
       fileManagerGetTotalSize.mockReturnValueOnce(23);
 
       // @ts-ignore
-      await expect(server.fetchFile(fileUrl, headers, options)).rejects.toThrow(
-        'CodDicomWebServer.ts: Maximum size(20) for fetching files reached'
-      );
+      await expect(server.fetchFile(fileUrl, headers, options)).resolves;
     });
 
     it('should return the file if cached in the fileManager', async () => {
@@ -242,7 +239,7 @@ describe('CodDicomWebServer', () => {
     it('should delete a series instance', () => {
       const seriesInstanceUID = '1.2.3.4';
 
-      server.addFileUrl(seriesInstanceUID, 'fileUrl');
+      server.addFileUrl(seriesInstanceUID, Enums.URLType.FILE, 'fileUrl');
       server.delete(seriesInstanceUID);
 
       expect(fileManagerRemove).toHaveBeenCalledTimes(1);
@@ -258,10 +255,10 @@ describe('CodDicomWebServer', () => {
 
   describe('deleteAll', () => {
     it('should delete all series instances', () => {
-      server.addFileUrl('1.2.3.4', 'fileUrl1');
-      server.addFileUrl('1.2.4', 'fileUrl2');
-      server.addFileUrl('1.2.4', 'fileUrl3');
-      server.addFileUrl('1.2.3.4', 'fileUrl3');
+      server.addFileUrl('1.2.3.4', Enums.URLType.FILE, 'fileUrl1');
+      server.addFileUrl('1.2.4', Enums.URLType.FILE, 'fileUrl2');
+      server.addFileUrl('1.2.4', Enums.URLType.FILE, 'fileUrl3');
+      server.addFileUrl('1.2.3.4', Enums.URLType.FILE, 'fileUrl3');
       server.deleteAll();
 
       expect(fileManagerRemove).toHaveBeenCalledTimes(4);
