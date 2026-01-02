@@ -21,7 +21,7 @@ class WebWorkerManager {
     }
   }
 
-  public async executeTask(workerName: string, taskName: string, options: Record<string, unknown> | unknown): Promise<void> {
+  public async executeTask(workerName: string, taskName: string, options: Record<string, unknown> | unknown): Promise<any> {
     const worker = this.workerRegistry[workerName]?.instance;
     if (!worker) {
       throw new CustomError(`Worker ${workerName} not registered`);

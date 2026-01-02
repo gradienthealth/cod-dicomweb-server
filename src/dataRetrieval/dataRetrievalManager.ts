@@ -43,7 +43,7 @@ class DataRetrievalManager {
     this.dataRetriever.register(name, arg);
   }
 
-  public async executeTask(loaderName: string, taskName: string, options: Record<string, unknown> | unknown): Promise<void> {
+  public async executeTask(loaderName: string, taskName: string, options: Record<string, unknown> | unknown): Promise<any> {
     return await this.dataRetriever.executeTask(loaderName, taskName, options);
   }
 
@@ -69,6 +69,7 @@ class DataRetrievalManager {
 }
 
 const dataRetrievalManager = new DataRetrievalManager();
+Object.freeze(dataRetrievalManager);
 
 export function getDataRetrievalManager(): DataRetrievalManager {
   return dataRetrievalManager;

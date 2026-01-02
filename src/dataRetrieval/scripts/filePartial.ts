@@ -10,7 +10,7 @@ const filePartial = {
       directoryHandle?: FileSystemDirectoryHandle;
     },
     callBack: (data: { url: string; fileArraybuffer: Uint8Array; offsets: { startByte: number; endByte: number } }) => void
-  ): Promise<void | Error> {
+  ): Promise<Uint8Array | Error> {
     const { url, offsets, headers, directoryHandle } = args;
     if (offsets?.startByte && offsets?.endByte) {
       headers['Range'] = `bytes=${offsets.startByte}-${offsets.endByte - 1}`;
@@ -21,19 +21,23 @@ const filePartial = {
     if (directoryHandle) {
       const file = (await readFile(directoryHandle, storageName, { offsets, isJson: false })) as ArrayBuffer;
       if (file) {
-        callBack({ url, fileArraybuffer: new Uint8Array(file), offsets });
-        return;
+        const fileBuffer = new Uint8Array(file);
+        callBack({ url, fileArraybuffer: fileBuffer, offsets });
+        return fileBuffer;
       }
     }
 
-    await fetch(url, { headers })
+    return await fetch(url, { headers })
       .then((response) => response.arrayBuffer())
       .then((data) => {
-        callBack({ url, fileArraybuffer: new Uint8Array(data), offsets });
+        const fileBuffer = new Uint8Array(data);
+        callBack({ url, fileArraybuffer: fileBuffer, offsets });
 
         if (directoryHandle) {
           writeFile(directoryHandle, storageName, data);
         }
+
+        return fileBuffer;
       })
       .catch((error) => {
         throw new CustomError('filePartial.ts: Error when fetching file: ' + error?.message);
