@@ -24,18 +24,18 @@ class CodDicomWebServer {
   private options: CodDicomWebServerOptions = {
     maxCacheSize: 4 * 1024 * 1024 * 1024, // 4GB
     domain: constants.url.DOMAIN,
-    enableLocalCache: false
+    enableOPFSCache: false
   };
   private fileManager;
   private metadataManager;
   private seriesUidFileUrls: Record<string, Set<{ type: Enums.URLType; url: string }>> = {};
 
-  constructor(args: { maxCacheSize?: number; domain?: string; disableWorker?: boolean; enableLocalCache?: boolean } = {}) {
-    const { maxCacheSize, domain, disableWorker, enableLocalCache } = args;
+  constructor(args: { maxCacheSize?: number; domain?: string; disableWorker?: boolean; enableOPFSCache?: boolean } = {}) {
+    const { maxCacheSize, domain, disableWorker, enableOPFSCache } = args;
 
     this.options.maxCacheSize = maxCacheSize || this.options.maxCacheSize;
     this.options.domain = domain || this.options.domain;
-    this.options.enableLocalCache = !!enableLocalCache;
+    this.options.enableOPFSCache = !!enableOPFSCache;
     const fileStreamingScriptName = constants.dataRetrieval.FILE_STREAMING_WORKER_NAME;
     const filePartialScriptName = constants.dataRetrieval.FILE_PARTIAL_WORKER_NAME;
     this.fileManager = new FileManager();
@@ -213,7 +213,7 @@ class CodDicomWebServer {
       });
     }
 
-    const directoryHandle = this.options.enableLocalCache && (await getDirectoryHandle());
+    const directoryHandle = this.options.enableOPFSCache && (await getDirectoryHandle());
     const dataRetrievalManager = getDataRetrievalManager();
     const { FILE_STREAMING_WORKER_NAME, FILE_PARTIAL_WORKER_NAME } = constants.dataRetrieval;
     let tarPromise: Promise<void>;
@@ -232,7 +232,7 @@ class CodDicomWebServer {
             const { url, position, fileArraybuffer } = evt.data;
 
             if (url === fileUrl && fileArraybuffer) {
-              if (this.options.enableLocalCache) {
+              if (this.options.enableOPFSCache) {
                 this.files[fileUrl] = fileArraybuffer;
               } else {
                 this.fileManager.set(url, { data: fileArraybuffer, position });
@@ -272,7 +272,7 @@ class CodDicomWebServer {
             const { url, fileArraybuffer, offsets } = evt.data;
 
             if (url === bytesRemovedUrl && offsets.startByte === startByte && offsets.endByte === endByte) {
-              if (this.options.enableLocalCache) {
+              if (this.options.enableOPFSCache) {
                 this.files[fileUrl] = fileArraybuffer;
               } else {
                 this.fileManager.set(fileUrl, { data: fileArraybuffer, position: fileArraybuffer.length });
@@ -323,7 +323,7 @@ class CodDicomWebServer {
 
         if (isAppending) {
           if (chunk) {
-            if (this.options.enableLocalCache) {
+            if (this.options.enableOPFSCache) {
               this.files[url].set(chunk, position - chunk.length);
             } else {
               this.fileManager.append(url, chunk, position);
@@ -342,7 +342,7 @@ class CodDicomWebServer {
 
         if (!requestResolved && url === fileUrl && position > offsets.endByte) {
           try {
-            const file = this.options.enableLocalCache
+            const file = this.options.enableOPFSCache
               ? this.files[url].slice(offsets.startByte, offsets.endByte)
               : this.fileManager.get(url, offsets);
 
@@ -357,10 +357,10 @@ class CodDicomWebServer {
 
       const completeRequest = (url: string) => {
         requestResolved = true;
-        this.filePromises[url].requestCount--;
-        dataRetrievalManager.removeEventListener(FILE_STREAMING_WORKER_NAME, 'message', handleChunkAppend);
-
+        this.filePromises[url]?.requestCount && this.filePromises[url].requestCount--;
+        
         if (fileFetchingCompleted && this.filePromises[url] && !this.filePromises[url]?.requestCount) {
+          dataRetrievalManager.removeEventListener(FILE_STREAMING_WORKER_NAME, 'message', handleChunkAppend);
           delete this.filePromises[url];
           delete this.files[url];
         }
@@ -377,7 +377,7 @@ class CodDicomWebServer {
           if (!requestResolved) {
             if (this.fileManager.getPosition(fileUrl) || this.files[fileUrl]) {
               let file: Uint8Array;
-              if (this.options.enableLocalCache) {
+              if (this.options.enableOPFSCache) {
                 file =
                   isBytesOptimized || !offsets
                     ? this.files[fileUrl]

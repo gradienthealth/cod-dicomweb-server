@@ -27,7 +27,7 @@ const fileStreaming = {
       const fileName = createStreamingFileName(url);
       if (directoryHandle) {
         const file = (await readFile(directoryHandle, fileName, { isJson: false })) as ArrayBuffer;
-        if (file) {
+        if (file?.byteLength) {
           const totalLength = file.byteLength;
           const fileBuffer = new Uint8Array(file);
           callBack({ url, position: totalLength, fileArraybuffer: fileBuffer, totalLength });

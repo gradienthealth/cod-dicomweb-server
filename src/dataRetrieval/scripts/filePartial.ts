@@ -20,7 +20,7 @@ const filePartial = {
 
     if (directoryHandle) {
       const file = (await readFile(directoryHandle, storageName, { offsets, isJson: false })) as ArrayBuffer;
-      if (file) {
+      if (file?.byteLength) {
         const fileBuffer = new Uint8Array(file);
         callBack({ url, fileArraybuffer: fileBuffer, offsets });
         return fileBuffer;
