@@ -76,7 +76,7 @@ describe('CodDicomWebServer', () => {
   describe('getOptions', () => {
     it('should return the default options if not set', () => {
       const options = server.getOptions();
-      expect(options).toEqual({ maxCacheSize: 4 * 1024 * 1024 * 1024, domain: url.DOMAIN, enableLocalCache: false });
+      expect(options).toEqual({ maxCacheSize: 4 * 1024 * 1024 * 1024, domain: url.DOMAIN, enableOPFSCache: false });
     });
   });
 
@@ -84,7 +84,7 @@ describe('CodDicomWebServer', () => {
     it('should set new options', () => {
       const newOptions = { maxCacheSize: 2000 };
       server.setOptions(newOptions);
-      expect(server.getOptions()).toEqual({ domain: url.DOMAIN, enableLocalCache: false, ...newOptions });
+      expect(server.getOptions()).toEqual({ domain: url.DOMAIN, enableOPFSCache: false, ...newOptions });
     });
 
     it('should not set new options if the value is undefined', () => {
@@ -93,7 +93,7 @@ describe('CodDicomWebServer', () => {
       expect(server.getOptions()).toEqual({
         domain: url.DOMAIN,
         maxCacheSize: newOptions.maxCacheSize,
-        enableLocalCache: false
+        enableOPFSCache: false
       });
     });
   });
