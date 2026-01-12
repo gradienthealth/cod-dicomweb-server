@@ -29,8 +29,9 @@ const fileStreaming = {
         const file = (await readFile(directoryHandle, fileName, { isJson: false })) as ArrayBuffer;
         if (file) {
           const totalLength = file.byteLength;
-          callBack({ url, position: totalLength, fileArraybuffer: new Uint8Array(file), totalLength });
-          return;
+          const fileBuffer = new Uint8Array(file);
+          callBack({ url, position: totalLength, fileArraybuffer: fileBuffer, totalLength });
+          return fileBuffer;
         }
       }
 
@@ -96,6 +97,8 @@ const fileStreaming = {
           writeFile(directoryHandle, fileName, fileArraybuffer.slice().buffer);
         }
       }
+
+      return fileArraybuffer;
     } catch (error) {
       const streamingError = new CustomError(
         'fileStreaming.ts: ' + (error as CustomError).message || 'An error occured when streaming'

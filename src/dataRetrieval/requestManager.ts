@@ -34,7 +34,7 @@ class RequestManager {
     }
   };
 
-  public async executeTask(loaderName: string, taskName: string, options: Record<string, unknown> | unknown): Promise<void> {
+  public async executeTask(loaderName: string, taskName: string, options: Record<string, unknown> | unknown): Promise<any> {
     const loaderObject = this.loaderRegistry[loaderName]?.loaderObject;
     if (!loaderObject) {
       throw new CustomError(`Loader ${loaderName} not registered`);

@@ -76,7 +76,7 @@ describe('filePartial', () => {
     const headers = { 'Content-Type': 'application/json' };
     const callback = jest.fn();
     const expected = await (await URL_RESPONSES[url]).arrayBuffer();
-    await expect(filePartial.partial({ url, offsets, headers }, callback)).resolves.toBeUndefined();
+    await expect(filePartial.partial({ url, offsets, headers }, callback)).resolves.toEqual(expected);
     expect(callback).toHaveBeenCalledWith({ url, fileArraybuffer: new Uint8Array(expected), offsets });
     expect(callback).toHaveBeenCalledTimes(1);
   });
@@ -87,7 +87,7 @@ describe('filePartial', () => {
     const headers = { 'Content-Type': 'application/json' };
     const callback = jest.fn();
     const expected = (await (await URL_RESPONSES[url]).arrayBuffer()).slice(3, 7);
-    await expect(filePartial.partial({ url, offsets, headers }, callback)).resolves.toBeUndefined();
+    await expect(filePartial.partial({ url, offsets, headers }, callback)).resolves.toEqual(expected);
     expect(callback).toHaveBeenCalledWith({ url, fileArraybuffer: new Uint8Array(expected), offsets });
     expect(callback).toHaveBeenCalledTimes(1);
   });

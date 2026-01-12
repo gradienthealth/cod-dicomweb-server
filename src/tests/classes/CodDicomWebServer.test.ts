@@ -76,7 +76,7 @@ describe('CodDicomWebServer', () => {
   describe('getOptions', () => {
     it('should return the default options if not set', () => {
       const options = server.getOptions();
-      expect(options).toEqual({ maxCacheSize: Infinity, domain: url.DOMAIN, enableLocalCache: false });
+      expect(options).toEqual({ maxCacheSize: 4 * 1024 * 1024 * 1024, domain: url.DOMAIN, enableLocalCache: false });
     });
   });
 

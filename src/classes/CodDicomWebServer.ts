@@ -19,7 +19,8 @@ import { CustomErrorEvent } from './customClasses';
 import { download, getDirectoryHandle } from '../fileAccessSystemUtils';
 
 class CodDicomWebServer {
-  private filePromises: Record<string, Promise<void>> = {};
+  private filePromises: Record<string, { promise: Promise<void>; requestCount: number }> = {};
+  private files: Record<string, Uint8Array> = {};
   private options: CodDicomWebServerOptions = {
     maxCacheSize: 4 * 1024 * 1024 * 1024, // 4GB
     domain: constants.url.DOMAIN,
@@ -231,7 +232,11 @@ class CodDicomWebServer {
             const { url, position, fileArraybuffer } = evt.data;
 
             if (url === fileUrl && fileArraybuffer) {
-              this.fileManager.set(url, { data: fileArraybuffer, position });
+              if (this.options.enableLocalCache) {
+                this.files[fileUrl] = fileArraybuffer;
+              } else {
+                this.fileManager.set(url, { data: fileArraybuffer, position });
+              }
 
               dataRetrievalManager.removeEventListener(FILE_STREAMING_WORKER_NAME, 'message', handleFirstChunk);
             }
@@ -253,7 +258,6 @@ class CodDicomWebServer {
             })
             .then(() => {
               dataRetrievalManager.removeEventListener(FILE_STREAMING_WORKER_NAME, 'message', handleFirstChunk);
-              delete this.filePromises[fileUrl];
             });
         } else if (fetchType === FetchTypeEnum.BYTES_OPTIMIZED && offsets) {
           const { startByte, endByte } = offsets;
@@ -268,7 +272,11 @@ class CodDicomWebServer {
             const { url, fileArraybuffer, offsets } = evt.data;
 
             if (url === bytesRemovedUrl && offsets.startByte === startByte && offsets.endByte === endByte) {
-              this.fileManager.set(fileUrl, { data: fileArraybuffer, position: fileArraybuffer.length });
+              if (this.options.enableLocalCache) {
+                this.files[fileUrl] = fileArraybuffer;
+              } else {
+                this.fileManager.set(fileUrl, { data: fileArraybuffer, position: fileArraybuffer.length });
+              }
 
               dataRetrievalManager.removeEventListener(FILE_PARTIAL_WORKER_NAME, 'message', handleSlice);
               resolveFile();
@@ -289,20 +297,21 @@ class CodDicomWebServer {
             })
             .then(() => {
               dataRetrievalManager.removeEventListener(FILE_PARTIAL_WORKER_NAME, 'message', handleSlice);
-              delete this.filePromises[fileUrl];
             });
         } else {
           rejectFile(new CustomError('CodDicomWebServer.ts: Offsets is needed in bytes optimized fetching'));
         }
       });
 
-      this.filePromises[fileUrl] = tarPromise;
+      this.filePromises[fileUrl] = { promise: tarPromise, requestCount: 1 };
     } else {
-      tarPromise = this.filePromises[fileUrl];
+      tarPromise = this.filePromises[fileUrl].promise;
+      this.filePromises[fileUrl].requestCount++;
     }
 
     return new Promise<ArrayBufferLike | undefined>((resolveRequest, rejectRequest) => {
-      let requestResolved = false;
+      let requestResolved = false,
+        fileFetchingCompleted = false;
 
       const handleChunkAppend = (evt: CustomMessageEvent | CustomErrorEvent): void => {
         if (evt instanceof CustomErrorEvent) {
@@ -314,7 +323,11 @@ class CodDicomWebServer {
 
         if (isAppending) {
           if (chunk) {
-            this.fileManager.append(url, chunk, position);
+            if (this.options.enableLocalCache) {
+              this.files[url].set(chunk, position - chunk.length);
+            } else {
+              this.fileManager.append(url, chunk, position);
+            }
           } else {
             this.fileManager.setPosition(url, position);
           }
@@ -327,14 +340,29 @@ class CodDicomWebServer {
           }
         }
 
-        if (!requestResolved && url === fileUrl && offsets && position > offsets.endByte) {
+        if (!requestResolved && url === fileUrl && position > offsets.endByte) {
           try {
-            const file = this.fileManager.get(url, offsets);
-            requestResolved = true;
+            const file = this.options.enableLocalCache
+              ? this.files[url].slice(offsets.startByte, offsets.endByte)
+              : this.fileManager.get(url, offsets);
+
             resolveRequest(file?.buffer);
           } catch (error) {
             rejectRequest(error);
+          } finally {
+            completeRequest(url);
           }
+        }
+      };
+
+      const completeRequest = (url: string) => {
+        requestResolved = true;
+        this.filePromises[url].requestCount--;
+        dataRetrievalManager.removeEventListener(FILE_STREAMING_WORKER_NAME, 'message', handleChunkAppend);
+
+        if (fileFetchingCompleted && this.filePromises[url] && !this.filePromises[url]?.requestCount) {
+          delete this.filePromises[url];
+          delete this.files[url];
         }
       };
 
@@ -344,10 +372,20 @@ class CodDicomWebServer {
 
       tarPromise
         .then(() => {
+          fileFetchingCompleted = true;
+
           if (!requestResolved) {
-            if (this.fileManager.getPosition(fileUrl)) {
-              const file = this.fileManager.get(fileUrl, isBytesOptimized ? undefined : offsets);
-              requestResolved = true;
+            if (this.fileManager.getPosition(fileUrl) || this.files[fileUrl]) {
+              let file: Uint8Array;
+              if (this.options.enableLocalCache) {
+                file =
+                  isBytesOptimized || !offsets
+                    ? this.files[fileUrl]
+                    : this.files[fileUrl].slice(offsets.startByte, offsets.endByte);
+              } else {
+                file = this.fileManager.get(fileUrl, isBytesOptimized ? undefined : offsets);
+              }
+
               resolveRequest(file?.buffer);
             } else {
               rejectRequest(new CustomError(`File - ${fileUrl} not found`));
@@ -355,10 +393,11 @@ class CodDicomWebServer {
           }
         })
         .catch((error) => {
+          fileFetchingCompleted = true;
           rejectRequest(error);
         })
-        .then(() => {
-          dataRetrievalManager.removeEventListener(FILE_STREAMING_WORKER_NAME, 'message', handleChunkAppend);
+        .finally(() => {
+          completeRequest(fileUrl);
         });
     });
   }

@@ -148,4 +148,22 @@ describe('FileManager', () => {
     expect(fileManager.get(url2)).toBeNull();
     expect(fileManager.getTotalSize()).toEqual(0);
   });
+
+  it('should decache the necessary bytes', () => {
+    const url1 = 'test-url-1';
+    const file1 = { data: new Uint8Array([1, 2, 3]), position: 3 };
+    fileManager.set(url1, file1);
+    const url2 = 'test-url-2';
+    const file2 = { data: new Uint8Array([4, 5, 6]), position: 3 };
+    fileManager.set(url2, file2);
+    const url3 = 'test-url-3';
+    const file3 = { data: new Uint8Array([7, 8]), position: 2 };
+    fileManager.set(url3, file3);
+    fileManager.decacheNecessaryBytes(url3, file3.data.byteLength);
+
+    expect(fileManager.get(url1)).toBeNull();
+    expect(fileManager.get(url2)).toBe(file2.data);
+    expect(fileManager.get(url3)).toBe(file3.data);
+    expect(fileManager.getTotalSize()).toEqual(5);
+  });
 });
