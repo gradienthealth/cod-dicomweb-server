@@ -414,7 +414,7 @@ class CodDicomWebServer {
         const directoryHandle = await getDirectoryHandle();
         const fileSystemFile = (await readFile(directoryHandle, createStreamingFileName(seriesFileURL))) as ArrayBuffer;
 
-        if (fileSystemFile?.byteLength) {
+        if (!fileSystemFile?.byteLength) {
           return false;
         }
 
