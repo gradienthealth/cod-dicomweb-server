@@ -16,7 +16,7 @@ import type {
 import { getDataRetrievalManager } from '../dataRetrieval/dataRetrievalManager';
 import { CustomError, CustomMessageEvent } from './customClasses';
 import { CustomErrorEvent } from './customClasses';
-import { download, getDirectoryHandle } from '../fileAccessSystemUtils';
+import { createStreamingFileName, download, getDirectoryHandle, readFile } from '../fileAccessSystemUtils';
 
 class CodDicomWebServer {
   private filePromises: Record<string, { promise: Promise<void>; requestCount: number }> = {};
@@ -358,7 +358,7 @@ class CodDicomWebServer {
       const completeRequest = (url: string) => {
         requestResolved = true;
         this.filePromises[url]?.requestCount && this.filePromises[url].requestCount--;
-        
+
         if (fileFetchingCompleted && this.filePromises[url] && !this.filePromises[url]?.requestCount) {
           dataRetrievalManager.removeEventListener(FILE_STREAMING_WORKER_NAME, 'message', handleChunkAppend);
           delete this.filePromises[url];
@@ -402,14 +402,26 @@ class CodDicomWebServer {
     });
   }
 
-  public downloadSeriesFile(seriesInstanceUID: string): boolean {
+  public async downloadSeriesFile(seriesInstanceUID: string): Promise<boolean> {
     const seriesFileURL = Array.from(this.seriesUidFileUrls[seriesInstanceUID]).find(
       ({ url, type }) => type === Enums.URLType.FILE && url.endsWith('.tar')
     )?.url;
 
     if (seriesFileURL) {
-      const seriesArrayBuffer = this.fileManager.get(seriesFileURL);
-      return download(seriesFileURL.split('/').at(-1), seriesArrayBuffer);
+      let seriesArrayBuffer = this.fileManager.get(seriesFileURL);
+
+      if (!seriesArrayBuffer?.byteLength) {
+        const directoryHandle = await getDirectoryHandle();
+        const fileSystemFile = (await readFile(directoryHandle, createStreamingFileName(seriesFileURL))) as ArrayBuffer;
+
+        if (fileSystemFile?.byteLength) {
+          return false;
+        }
+
+        seriesArrayBuffer = new Uint8Array(fileSystemFile);
+      }
+
+      return download(seriesFileURL.split('/').at(-1), seriesArrayBuffer.buffer);
     }
     return false;
   }
