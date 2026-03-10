@@ -8,7 +8,7 @@ type JsonMetadata = {
     instances: Record<
       string,
       {
-        metadata: InstanceMetadata;
+        metadata: InstanceMetadata | string;
         // The metadata will either have url or uri
         uri: string;
         url: string;

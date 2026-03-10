@@ -451,9 +451,10 @@ class CodDicomWebServer {
     sopInstanceUID: string
   ): InstanceMetadata | SeriesMetadata {
     if (type === Enums.RequestType.INSTANCE_METADATA) {
-      return Object.entries(metadata.cod.instances).find(([key, instance]) => key === sopInstanceUID)?.[1].metadata;
+      return Object.entries(metadata.cod.instances).find(([key, instance]) => key === sopInstanceUID)?.[1]
+        .metadata as InstanceMetadata;
     } else {
-      return Object.values(metadata.cod.instances).map((instance) => instance.metadata);
+      return Object.values(metadata.cod.instances).map((instance) => instance.metadata as InstanceMetadata);
     }
   }
 }
