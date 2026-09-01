@@ -94,6 +94,6 @@
     "comlink": "4.4.2",
     "dicom-parser": "1.8.21",
     "idb-keyval": "6.2.2",
-    "zstddec": "^0.1.0"
+    "zstddec": "^0.2.0"
   }
 }
